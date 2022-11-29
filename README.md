@@ -1,94 +1,53 @@
-# internal-services
-// TODO(user): Add simple overview of use/purpose
+# Internal services
 
-## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+Internal services is a Kubernetes operator to offer a way to run internal queries from Stonesoup operators.
 
-## Getting Started
-You’ll need a Kubernetes cluster to run against. You can use [KIND](https://sigs.k8s.io/kind) to get a local cluster for testing, or run against a remote cluster.
-**Note:** Your controller will automatically use the current context in your kubeconfig file (i.e. whatever cluster `kubectl cluster-info` shows).
+## Running, building and testing the operator
 
-### Running on the cluster
-1. Install Instances of Custom Resources:
+This operator provides a [Makefile](Makefile) to run all the usual development tasks. This file can be used by cloning
+the repository and running `make` over any of the provided targets.
 
-```sh
-kubectl apply -f config/samples/
+### Running the operator locally
+
+When testing locally (eg. a CRC cluster), the command `make run install` can be used to deploy and run the operator. 
+If any change has been done in the code, `make manifests generate` should be executed before to generate the new resources
+and build the operator.
+f
+### Build and push a new image
+
+To build the operator and push a new image to the registry, the following commands can be used: 
+
+```shell
+$ make docker-build
+$ make docker-push
 ```
 
-2. Build and push your image to the location specified by `IMG`:
-	
-```sh
-make docker-build docker-push IMG=<some-registry>/internal-services:tag
-```
-	
-3. Deploy the controller to the cluster with the image specified by `IMG`:
+These commands will use the default image and tag. To modify them, new values for `TAG` and `IMG` environment variables
+can be passed. For example, to override the tag:
 
-```sh
-make deploy IMG=<some-registry>/internal-services:tag
+```shell
+$ TAG=my-tag make docker-build
+$ TAG=my-tag make docker-push
 ```
 
-### Uninstall CRDs
-To delete the CRDs from the cluster:
+Or, in the case the image should be pushed to a different repository:
 
-```sh
-make uninstall
+```shell
+$ IMG=quay.io/user/internal-services:my-tag make docker-build
+$ IMG=quay.io/user/internal-services:my-tag make docker-push
 ```
 
-### Undeploy controller
-UnDeploy the controller to the cluster:
+### Running tests
 
-```sh
-make undeploy
+To test the code, simply run `make test`. This command will fetch all the required dependencies and test the code. The
+test coverage will be reported at the end, once all the tests have been executed.
+
+## Disabling Webhooks for local development
+
+Webhooks require self-signed certificates to validate the resources. To disable webhooks during local development and
+testing, export the `ENABLE_WEBHOOKS` variable setting its value to `false` or prepend it while running the operator
+using the following command:
+
+```shell
+$ ENABLE_WEBHOOKS=false make run install
 ```
-
-## Contributing
-// TODO(user): Add detailed information on how you would like others to contribute to this project
-
-### How it works
-This project aims to follow the Kubernetes [Operator pattern](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/)
-
-It uses [Controllers](https://kubernetes.io/docs/concepts/architecture/controller/) 
-which provides a reconcile function responsible for synchronizing resources untile the desired state is reached on the cluster 
-
-### Test It Out
-1. Install the CRDs into the cluster:
-
-```sh
-make install
-```
-
-2. Run your controller (this will run in the foreground, so switch to a new terminal if you want to leave it running):
-
-```sh
-make run
-```
-
-**NOTE:** You can also run this in one step by running: `make install run`
-
-### Modifying the API definitions
-If you are editing the API definitions, generate the manifests such as CRs or CRDs using:
-
-```sh
-make manifests
-```
-
-**NOTE:** Run `make --help` for more information on all potential `make` targets
-
-More information can be found via the [Kubebuilder Documentation](https://book.kubebuilder.io/introduction.html)
-
-## License
-
-Copyright 2022.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
