@@ -5,6 +5,12 @@
 # - use environment variables to overwrite this value (e.g export VERSION=0.0.2)
 VERSION ?= 0.0.1
 
+# ENABLE_WEBHOOKS disable webhooks when running locally.
+ENABLE_WEBHOOKS ?= true
+
+# TAG_NAME is the default tag name for the Docker image.
+TAG_NAME ?= next
+
 # CHANNELS define the bundle channels used in the bundle.
 # Add a new line here if you would like to change its default config. (E.g CHANNELS = "candidate,fast,stable")
 # To re-generate a bundle for other specific channels without changing the standard setup, you can:

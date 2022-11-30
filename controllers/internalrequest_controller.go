@@ -27,26 +27,26 @@ import (
 	appstudiov1alpha1 "github.com/redhat-appstudio/internal-services/api/v1alpha1"
 )
 
-// IIBAddBundleToIndexImageRequestReconciler reconciles a IIBAddBundleToIndexImageRequest object
-type IIBAddBundleToIndexImageRequestReconciler struct {
+// InternalRequestReconciler reconciles a InternalRequest object
+type InternalRequestReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=appstudio.redhat.com,resources=iibaddbundletoindeximagerequests,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=appstudio.redhat.com,resources=iibaddbundletoindeximagerequests/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=appstudio.redhat.com,resources=iibaddbundletoindeximagerequests/finalizers,verbs=update
+//+kubebuilder:rbac:groups=appstudio.redhat.com,resources=internalrequests,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=appstudio.redhat.com,resources=internalrequests/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=appstudio.redhat.com,resources=internalrequests/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
-// the IIBAddBundleToIndexImageRequest object against the actual cluster state, and then
+// the InternalRequest object against the actual cluster state, and then
 // perform operations to make the cluster state reflect the state specified by
 // the user.
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.13.0/pkg/reconcile
-func (r *IIBAddBundleToIndexImageRequestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *InternalRequestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
 	// TODO(user): your logic here
@@ -55,8 +55,8 @@ func (r *IIBAddBundleToIndexImageRequestReconciler) Reconcile(ctx context.Contex
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *IIBAddBundleToIndexImageRequestReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *InternalRequestReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&appstudiov1alpha1.IIBAddBundleToIndexImageRequest{}).
+		For(&appstudiov1alpha1.InternalRequest{}).
 		Complete(r)
 }

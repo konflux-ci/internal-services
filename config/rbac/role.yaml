@@ -8,7 +8,7 @@ rules:
 - apiGroups:
   - appstudio.redhat.com
   resources:
-  - iibaddbundletoindeximagerequests
+  - internalrequests
   verbs:
   - create
   - delete
@@ -20,13 +20,13 @@ rules:
 - apiGroups:
   - appstudio.redhat.com
   resources:
-  - iibaddbundletoindeximagerequests/finalizers
+  - internalrequests/finalizers
   verbs:
   - update
 - apiGroups:
   - appstudio.redhat.com
   resources:
-  - iibaddbundletoindeximagerequests/status
+  - internalrequests/status
   verbs:
   - get
   - patch

@@ -89,11 +89,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.IIBAddBundleToIndexImageRequestReconciler{
+	if err = (&controllers.InternalRequestReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "IIBAddBundleToIndexImageRequest")
+		setupLog.Error(err, "unable to create controller", "controller", "InternalRequest")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

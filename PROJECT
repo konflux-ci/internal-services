@@ -13,7 +13,7 @@ resources:
   controller: true
   domain: redhat.com
   group: appstudio
-  kind: IIBAddBundleToIndexImageRequest
+  kind: InternalRequest
   path: github.com/redhat-appstudio/internal-services/api/v1alpha1
   version: v1alpha1
 version: "3"

@@ -23,17 +23,17 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// IIBAddBundleToIndexImageRequestSpec defines the desired state of IIBAddBundleToIndexImageRequest
-type IIBAddBundleToIndexImageRequestSpec struct {
+// InternalRequestSpec defines the desired state of InternalRequest
+type InternalRequestSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of IIBAddBundleToIndexImageRequest. Edit iibaddbundletoindeximagerequest_types.go to remove/update
+	// Foo is an example field of InternalRequest. Edit internalrequest_types.go to remove/update
 	Foo string `json:"foo,omitempty"`
 }
 
-// IIBAddBundleToIndexImageRequestStatus defines the observed state of IIBAddBundleToIndexImageRequest
-type IIBAddBundleToIndexImageRequestStatus struct {
+// InternalRequestStatus defines the observed state of InternalRequest
+type InternalRequestStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 }
@@ -41,24 +41,24 @@ type IIBAddBundleToIndexImageRequestStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
-// IIBAddBundleToIndexImageRequest is the Schema for the iibaddbundletoindeximagerequests API
-type IIBAddBundleToIndexImageRequest struct {
+// InternalRequest is the Schema for the internalrequests API
+type InternalRequest struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   IIBAddBundleToIndexImageRequestSpec   `json:"spec,omitempty"`
-	Status IIBAddBundleToIndexImageRequestStatus `json:"status,omitempty"`
+	Spec   InternalRequestSpec   `json:"spec,omitempty"`
+	Status InternalRequestStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// IIBAddBundleToIndexImageRequestList contains a list of IIBAddBundleToIndexImageRequest
-type IIBAddBundleToIndexImageRequestList struct {
+// InternalRequestList contains a list of InternalRequest
+type InternalRequestList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []IIBAddBundleToIndexImageRequest `json:"items"`
+	Items           []InternalRequest `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&IIBAddBundleToIndexImageRequest{}, &IIBAddBundleToIndexImageRequestList{})
+	SchemeBuilder.Register(&InternalRequest{}, &InternalRequestList{})
 }
