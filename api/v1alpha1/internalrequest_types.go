@@ -20,22 +20,27 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // InternalRequestSpec defines the desired state of InternalRequest
 type InternalRequestSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// Request is the name of the internal request which will be translated into a Tekton pipeline
+	// +kubebuilder:validation:Pattern=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+	// +required
+	Request string `json:"request"`
 
-	// Foo is an example field of InternalRequest. Edit internalrequest_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// Params is the list of optional parameters to pass to the Tekton pipeline
+	// +optional
+	Params map[string]string `json:"params,omitempty"`
 }
 
 // InternalRequestStatus defines the observed state of InternalRequest
 type InternalRequestStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// Conditions represent the latest available observations for the request
+	// +optional
+	Conditions []metav1.Condition `json:"conditions"`
+
+	// Results is the list of optional results as seen in the Tekton pipeline
+	// +optional
+	Results map[string]string `json:"results,omitempty"`
 }
 
 //+kubebuilder:object:root=true
