@@ -18,7 +18,12 @@ package main
 
 import (
 	"flag"
+	"github.com/redhat-appstudio/internal-services/controllers"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/cluster"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -32,7 +37,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	appstudiov1alpha1 "github.com/redhat-appstudio/internal-services/api/v1alpha1"
-	"github.com/redhat-appstudio/internal-services/controllers"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -52,11 +56,16 @@ func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
+	var remoteClusterConfigFile string
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+	flag.StringVar(&remoteClusterConfigFile, "remote-cluster-config-file", "",
+		"The remote client will load its initial configuration from this file. "+
+			"Omit this flag to use the default configuration values. "+
+			"Command-line flags override configuration from this file.")
 	opts := zap.Options{
 		Development: true,
 	}
@@ -72,32 +81,33 @@ func main() {
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "b548bb9d.redhat.com",
-		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
-		// when the Manager ends. This requires the binary to immediately end when the
-		// Manager is stopped, otherwise, this setting is unsafe. Setting this significantly
-		// speeds up voluntary leader transitions as the new leader don't have to wait
-		// LeaseDuration time first.
-		//
-		// In the default scaffold provided, the program ends immediately after
-		// the manager stops, so would be fine to enable this option. However,
-		// if you are doing or is intended to do any operation such as perform cleanups
-		// after the manager stops then its usage might be unsafe.
-		// LeaderElectionReleaseOnCancel: true,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 
-	if err = (&controllers.InternalRequestReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "InternalRequest")
+	remoteCluster, err := setupRemoteCluster(mgr, remoteClusterConfigFile)
+	if err != nil {
+		setupLog.Error(err, "unable to register remote cluster")
 		os.Exit(1)
 	}
+
+	setupControllers(mgr, remoteCluster)
+
 	//+kubebuilder:scaffold:builder
 
+	addHealthAndReadyChecks(mgr)
+
+	setupLog.Info("starting manager")
+	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+		setupLog.Error(err, "problem running manager")
+		os.Exit(1)
+	}
+}
+
+// addHealthAndReadyChecks adds health and ready checks to the manager.
+func addHealthAndReadyChecks(mgr manager.Manager) {
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
 		os.Exit(1)
@@ -106,10 +116,47 @@ func main() {
 		setupLog.Error(err, "unable to set up ready check")
 		os.Exit(1)
 	}
+}
 
-	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		setupLog.Error(err, "problem running manager")
+// getRemoteClusterClientConfig reads a config file with a remote cluster configuration and returns
+// the pointer to a rest.Config object.
+func getRemoteClusterClientConfig(configFile string) (*rest.Config, error) {
+	data, err := os.ReadFile(configFile)
+	if err != nil {
+		return nil, err
+	}
+
+	clientConfig, err := clientcmd.NewClientConfigFromBytes(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return clientConfig.ClientConfig()
+}
+
+// setupControllers setups all the operator controllers.
+func setupControllers(mgr manager.Manager, remoteCluster cluster.Cluster) {
+	err := controllers.SetupControllers(mgr, remoteCluster)
+	if err != nil {
+		setupLog.Error(err, "unable to setup controllers")
 		os.Exit(1)
 	}
+}
+
+// setupRemoteCluster register a remote cluster in the given manager.
+func setupRemoteCluster(mgr manager.Manager, configFile string) (cluster.Cluster, error) {
+	config, err := getRemoteClusterClientConfig(configFile)
+	if err != nil {
+		return nil, err
+	}
+
+	remoteCluster, err := cluster.New(config, func(options *cluster.Options) {
+		options.Scheme = scheme
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return remoteCluster, mgr.Add(remoteCluster)
 }

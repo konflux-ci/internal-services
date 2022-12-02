@@ -22,10 +22,10 @@ import (
 
 // InternalRequestSpec defines the desired state of InternalRequest
 type InternalRequestSpec struct {
-	// Request is the name of the internal request which will be translated into a Tekton pipeline
+	// Request is the name of the internal internalrequest which will be translated into a Tekton pipeline
 	// +kubebuilder:validation:Pattern=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
 	// +required
-	Request string `json:"request"`
+	Request string `json:"internalrequest"`
 
 	// Params is the list of optional parameters to pass to the Tekton pipeline
 	// +optional
@@ -34,7 +34,7 @@ type InternalRequestSpec struct {
 
 // InternalRequestStatus defines the observed state of InternalRequest
 type InternalRequestStatus struct {
-	// Conditions represent the latest available observations for the request
+	// Conditions represent the latest available observations for the internalrequest
 	// +optional
 	Conditions []metav1.Condition `json:"conditions"`
 

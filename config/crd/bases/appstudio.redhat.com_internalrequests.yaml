@@ -35,26 +35,26 @@ spec:
           spec:
             description: InternalRequestSpec defines the desired state of InternalRequest
             properties:
+              internalrequest:
+                description: Request is the name of the internal internalrequest which
+                  will be translated into a Tekton pipeline
+                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                type: string
               params:
                 additionalProperties:
                   type: string
                 description: Params is the list of optional parameters to pass to
                   the Tekton pipeline
                 type: object
-              request:
-                description: Request is the name of the internal request which will
-                  be translated into a Tekton pipeline
-                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
-                type: string
             required:
-            - request
+            - internalrequest
             type: object
           status:
             description: InternalRequestStatus defines the observed state of InternalRequest
             properties:
               conditions:
                 description: Conditions represent the latest available observations
-                  for the request
+                  for the internalrequest
                 items:
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource. --- This struct is intended for direct
