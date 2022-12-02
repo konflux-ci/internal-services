@@ -1,0 +1,9 @@
+apiVersion: appstudio.redhat.com/v1alpha1
+kind: InternalRequest
+metadata:
+  name: "myrequest"
+spec:
+  request: "myrequest"
+  params:
+    foo: bar
+    baz: qux

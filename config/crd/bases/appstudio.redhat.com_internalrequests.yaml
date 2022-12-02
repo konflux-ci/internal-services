@@ -35,19 +35,19 @@ spec:
           spec:
             description: InternalRequestSpec defines the desired state of InternalRequest
             properties:
-              internalrequest:
-                description: Request is the name of the internal internalrequest which
-                  will be translated into a Tekton pipeline
-                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
-                type: string
               params:
                 additionalProperties:
                   type: string
                 description: Params is the list of optional parameters to pass to
-                  the Tekton pipeline
+                  the Tekton pipeline kubebuilder:pruning:PreserveUnknownFields
                 type: object
+              request:
+                description: Request is the name of the internal internalrequest which
+                  will be translated into a Tekton pipeline
+                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                type: string
             required:
-            - internalrequest
+            - request
             type: object
           status:
             description: InternalRequestStatus defines the observed state of InternalRequest

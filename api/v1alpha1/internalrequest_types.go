@@ -25,9 +25,10 @@ type InternalRequestSpec struct {
 	// Request is the name of the internal internalrequest which will be translated into a Tekton pipeline
 	// +kubebuilder:validation:Pattern=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
 	// +required
-	Request string `json:"internalrequest"`
+	Request string `json:"request"`
 
 	// Params is the list of optional parameters to pass to the Tekton pipeline
+	// kubebuilder:pruning:PreserveUnknownFields
 	// +optional
 	Params map[string]string `json:"params,omitempty"`
 }
