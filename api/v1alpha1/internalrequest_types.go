@@ -40,6 +40,7 @@ type InternalRequestStatus struct {
 	Conditions []metav1.Condition `json:"conditions"`
 
 	// Results is the list of optional results as seen in the Tekton pipeline
+	// kubebuilder:pruning:PreserveUnknownFields
 	// +optional
 	Results map[string]string `json:"results,omitempty"`
 }

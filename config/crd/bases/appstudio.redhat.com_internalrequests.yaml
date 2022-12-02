@@ -126,7 +126,7 @@ spec:
                 additionalProperties:
                   type: string
                 description: Results is the list of optional results as seen in the
-                  Tekton pipeline
+                  Tekton pipeline kubebuilder:pruning:PreserveUnknownFields
                 type: object
             type: object
         type: object
