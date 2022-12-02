@@ -32,17 +32,19 @@ import (
 
 // Reconciler reconciles an InternalRequest object
 type Reconciler struct {
-	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Client         client.Client
+	Log            logr.Logger
+	InternalClient client.Client
+	Scheme         *runtime.Scheme
 }
 
 // NewInternalRequestReconciler creates and returns a Reconciler.
-func NewInternalRequestReconciler(client client.Client, logger *logr.Logger, scheme *runtime.Scheme) *Reconciler {
+func NewInternalRequestReconciler(client client.Client, remoteClient client.Client, logger *logr.Logger, scheme *runtime.Scheme) *Reconciler {
 	return &Reconciler{
-		Client: client,
-		Log:    logger.WithName("release"),
-		Scheme: scheme,
+		Client:         remoteClient,
+		InternalClient: client,
+		Log:            logger.WithName("internalRequest"),
+		Scheme:         scheme,
 	}
 }
 
@@ -56,7 +58,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	logger := r.Log.WithValues("InternalRequest", req.NamespacedName)
 
 	internalRequest := &v1alpha1.InternalRequest{}
-	err := r.Get(ctx, req.NamespacedName, internalRequest)
+	err := r.Client.Get(ctx, req.NamespacedName, internalRequest)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return ctrl.Result{}, nil
@@ -65,7 +67,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	adapter := NewAdapter(internalRequest, logger, r.Client, ctx)
+	adapter := NewAdapter(internalRequest, r.Client, r.InternalClient, ctx, logger)
 
 	return reconciler.ReconcileHandler([]reconciler.ReconcileOperation{
 		adapter.EnsureReconcileOperationIsLogged,
@@ -74,7 +76,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 // SetupController creates a new InternalRequest reconciler and adds it to the Manager.
 func SetupController(mgr ctrl.Manager, remoteCluster cluster.Cluster, log *logr.Logger) error {
-	return setupControllerWithManager(mgr, remoteCluster, NewInternalRequestReconciler(mgr.GetClient(), log, mgr.GetScheme()))
+	return setupControllerWithManager(mgr, remoteCluster, NewInternalRequestReconciler(mgr.GetClient(), remoteCluster.GetClient(), log, mgr.GetScheme()))
 }
 
 // setupControllerWithManager sets up the controller with the Manager which monitors new Releases and filters out
@@ -82,6 +84,7 @@ func SetupController(mgr ctrl.Manager, remoteCluster cluster.Cluster, log *logr.
 // the owner gets reconciled on PipelineRun changes.
 func setupControllerWithManager(mgr ctrl.Manager, remoteCluster cluster.Cluster, reconciler *Reconciler) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		For(&v1alpha1.InternalRequest{}).
 		Watches(
 			source.NewKindWithCache(&v1alpha1.InternalRequest{}, remoteCluster.GetCache()),
 			&handler.EnqueueRequestForObject{},

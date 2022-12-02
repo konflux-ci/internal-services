@@ -26,19 +26,21 @@ import (
 
 // Adapter holds the objects needed to reconcile a Release.
 type Adapter struct {
-	release *v1alpha1.InternalRequest
-	logger  logr.Logger
-	client  client.Client
-	context context.Context
+	client          client.Client
+	context         context.Context
+	internalClient  client.Client
+	internalRequest *v1alpha1.InternalRequest
+	logger          logr.Logger
 }
 
 // NewAdapter creates and returns an Adapter instance.
-func NewAdapter(release *v1alpha1.InternalRequest, logger logr.Logger, client client.Client, context context.Context) *Adapter {
+func NewAdapter(internalRequest *v1alpha1.InternalRequest, client, internalClient client.Client, context context.Context, logger logr.Logger) *Adapter {
 	return &Adapter{
-		release: release,
-		logger:  logger,
-		client:  client,
-		context: context,
+		client:          client,
+		context:         context,
+		internalRequest: internalRequest,
+		internalClient:  internalClient,
+		logger:          logger,
 	}
 }
 
