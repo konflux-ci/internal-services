@@ -55,8 +55,8 @@ func NewInternalRequestReconciler(client client.Client, logger *logr.Logger, sch
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := r.Log.WithValues("InternalRequest", req.NamespacedName)
 
-	release := &v1alpha1.InternalRequest{}
-	err := r.Get(ctx, req.NamespacedName, release)
+	internalRequest := &v1alpha1.InternalRequest{}
+	err := r.Get(ctx, req.NamespacedName, internalRequest)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return ctrl.Result{}, nil
@@ -65,7 +65,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	adapter := NewAdapter(release, logger, r.Client, ctx)
+	adapter := NewAdapter(internalRequest, logger, r.Client, ctx)
 
 	return reconciler.ReconcileHandler([]reconciler.ReconcileOperation{
 		adapter.EnsureReconcileOperationIsLogged,
