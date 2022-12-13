@@ -19,14 +19,22 @@ package internalrequest
 import (
 	"context"
 	"github.com/go-logr/logr"
+	libhandler "github.com/operator-framework/operator-lib/handler"
 	"github.com/redhat-appstudio/internal-services/api/v1alpha1"
+	"github.com/redhat-appstudio/internal-services/loader"
+	"github.com/redhat-appstudio/internal-services/tekton"
+	"github.com/redhat-appstudio/operator-goodies/predicates"
 	"github.com/redhat-appstudio/operator-goodies/reconciler"
+	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/cluster"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
@@ -67,10 +75,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	adapter := NewAdapter(internalRequest, r.Client, r.InternalClient, ctx, logger)
+	adapter := NewAdapter(ctx, r.Client, r.InternalClient, internalRequest, loader.NewLoader(), logger)
 
 	return reconciler.ReconcileHandler([]reconciler.ReconcileOperation{
-		adapter.EnsureReconcileOperationIsLogged,
+		adapter.EnsurePipelineRunIsCreated,
+		adapter.EnsureStatusIsTracked,
 	})
 }
 
@@ -84,10 +93,20 @@ func SetupController(mgr ctrl.Manager, remoteCluster cluster.Cluster, log *logr.
 // the owner gets reconciled on PipelineRun changes.
 func setupControllerWithManager(mgr ctrl.Manager, remoteCluster cluster.Cluster, reconciler *Reconciler) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&v1alpha1.InternalRequest{}).
+		For(
+			&v1alpha1.InternalRequest{},
+			builder.WithPredicates(predicate.GenerationChangedPredicate{}, predicates.IgnoreAllPredicate{}),
+		).
 		Watches(
 			source.NewKindWithCache(&v1alpha1.InternalRequest{}, remoteCluster.GetCache()),
 			&handler.EnqueueRequestForObject{},
+			builder.WithPredicates(predicate.GenerationChangedPredicate{}, predicates.NewObjectsPredicate{}),
 		).
+		Watches(&source.Kind{Type: &tektonv1beta1.PipelineRun{}}, &libhandler.EnqueueRequestForAnnotation{
+			Type: schema.GroupKind{
+				Kind:  "InternalRequest",
+				Group: "appstudio.redhat.com",
+			},
+		}, builder.WithPredicates(tekton.InternalRequestPipelineRunSucceededPredicate())).
 		Complete(reconciler)
 }
