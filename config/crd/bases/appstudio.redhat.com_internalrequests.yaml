@@ -15,10 +15,17 @@ spec:
     singular: internalrequest
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .status.conditions[?(@.type=="InternalRequestSucceeded")].status
+      name: Succeeded
+      type: string
+    - jsonPath: .status.conditions[?(@.type=="InternalRequestSucceeded")].reason
+      name: Reason
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: InternalRequest is the Schema for the internalrequests API
+        description: InternalRequest is the Schema for the internalrequests API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -33,7 +40,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: InternalRequestSpec defines the desired state of InternalRequest
+            description: InternalRequestSpec defines the desired state of InternalRequest.
             properties:
               params:
                 additionalProperties:
@@ -50,8 +57,12 @@ spec:
             - request
             type: object
           status:
-            description: InternalRequestStatus defines the observed state of InternalRequest
+            description: InternalRequestStatus defines the observed state of InternalRequest.
             properties:
+              completionTime:
+                description: CompletionTime is the time the Release PipelineRun completed
+                format: date-time
+                type: string
               conditions:
                 description: Conditions represent the latest available observations
                   for the internalrequest
@@ -126,8 +137,13 @@ spec:
                 additionalProperties:
                   type: string
                 description: Results is the list of optional results as seen in the
-                  Tekton pipeline kubebuilder:pruning:PreserveUnknownFields
+                  Tekton PipelineRun kubebuilder:pruning:PreserveUnknownFields
                 type: object
+              startTime:
+                description: StartTime is the time when the Release PipelineRun was
+                  created and set to run
+                format: date-time
+                type: string
             type: object
         type: object
     served: true
