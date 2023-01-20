@@ -53,6 +53,12 @@ var _ = Describe("PipelineRun", Ordered, func() {
 			Expect(newPipelineRun.Labels[InternalRequestNamespaceLabel]).To(Equal(internalRequest.Namespace))
 		})
 
+		It("should target the default namespace", func() {
+			newPipelineRun := NewPipelineRun(internalRequest)
+
+			Expect(newPipelineRun.Namespace).To(Equal("default"))
+		})
+
 		It("should reference the Pipeline specified in the InternalRequest", func() {
 			newPipelineRun := NewPipelineRun(internalRequest)
 

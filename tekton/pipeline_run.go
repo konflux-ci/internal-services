@@ -44,7 +44,7 @@ func NewPipelineRun(internalRequest *v1alpha1.InternalRequest) *tektonv1beta1.Pi
 	pipelineRun := &tektonv1beta1.PipelineRun{
 		ObjectMeta: v1.ObjectMeta{
 			GenerateName: strings.ToLower(reflect.TypeOf(v1alpha1.InternalRequest{}).Name()) + "-",
-			Namespace:    internalRequest.Namespace,
+			Namespace:    "default",
 			Labels: map[string]string{
 				InternalRequestNameLabel:      internalRequest.Name,
 				InternalRequestNamespaceLabel: internalRequest.Namespace,
