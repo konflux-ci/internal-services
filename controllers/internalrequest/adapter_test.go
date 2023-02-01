@@ -45,6 +45,34 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		})
 	})
 
+	Context("When calling EnsureConfigIsLoaded", func() {
+		AfterEach(func() {
+			deleteResources()
+		})
+
+		BeforeEach(func() {
+			createResources()
+		})
+
+		It("loads the InternalServicesConfig and assigns it to the adapter", func() {
+			adapter.internalServicesConfig = nil
+			result, err := adapter.EnsureConfigIsLoaded()
+			Expect(!result.CancelRequest && !result.RequeueRequest).To(BeTrue())
+			Expect(err).To(BeNil())
+			Expect(adapter.internalServicesConfig).NotTo(BeNil())
+		})
+
+		It("creates and assigns a new InternalServicesConfig if none is found", func() {
+			Expect(adapter.client.Delete(ctx, adapter.internalServicesConfig)).To(Succeed())
+			adapter.internalServicesConfig = nil
+
+			result, err := adapter.EnsureConfigIsLoaded()
+			Expect(!result.CancelRequest && !result.RequeueRequest).To(BeTrue())
+			Expect(err).To(BeNil())
+			Expect(adapter.internalServicesConfig).NotTo(BeNil())
+		})
+	})
+
 	Context("When calling EnsurePipelineRunIsCreated", func() {
 		AfterEach(func() {
 			deleteResources()
@@ -84,6 +112,56 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		})
 	})
 
+	Context("When calling EnsureRequestIsAllowed", func() {
+		AfterEach(func() {
+			deleteResources()
+		})
+
+		BeforeEach(func() {
+			createResources()
+		})
+
+		It("should deny any request when the spec.allowList is empty", func() {
+			result, err := adapter.EnsureRequestIsAllowed()
+			Expect(result.CancelRequest && !result.RequeueRequest).To(BeTrue())
+			Expect(err).To(BeNil())
+			Expect(adapter.internalRequest.Status.Conditions).To(HaveLen(1))
+			Expect(adapter.internalRequest.Status.Conditions[0].Reason).To(Equal(string(v1alpha1.InternalRequestRejected)))
+			Expect(adapter.internalRequest.Status.Conditions[0].Message).To(ContainSubstring("not in the allow list"))
+		})
+
+		It("should allow any request from a namespace in the spec.allowList", func() {
+			// Delete the current internalServicesConfig as it won't be used
+			Expect(k8sClient.Delete(ctx, adapter.internalServicesConfig)).To(Succeed())
+
+			adapter.internalServicesConfig = &v1alpha1.InternalServicesConfig{
+				Spec: v1alpha1.InternalServicesConfigSpec{
+					AllowList: []string{"default"},
+				},
+			}
+			result, err := adapter.EnsureRequestIsAllowed()
+			Expect(!result.CancelRequest && !result.RequeueRequest).To(BeTrue())
+			Expect(err).To(BeNil())
+		})
+
+		It("should deny any request from a namespace not in the spec.allowList", func() {
+			// Delete the current internalServicesConfig as it won't be used
+			Expect(k8sClient.Delete(ctx, adapter.internalServicesConfig)).To(Succeed())
+
+			adapter.internalServicesConfig = &v1alpha1.InternalServicesConfig{
+				Spec: v1alpha1.InternalServicesConfigSpec{
+					AllowList: []string{"foo"},
+				},
+			}
+			result, err := adapter.EnsureRequestIsAllowed()
+			Expect(result.CancelRequest && !result.RequeueRequest).To(BeTrue())
+			Expect(err).To(BeNil())
+			Expect(adapter.internalRequest.Status.Conditions).To(HaveLen(1))
+			Expect(adapter.internalRequest.Status.Conditions[0].Reason).To(Equal(string(v1alpha1.InternalRequestRejected)))
+			Expect(adapter.internalRequest.Status.Conditions[0].Message).To(ContainSubstring("not in the allow list"))
+		})
+	})
+
 	Context("When calling EnsureStatusIsTracked", func() {
 		AfterEach(func() {
 			deleteResources()
@@ -99,6 +177,23 @@ var _ = Describe("PipelineRun", Ordered, func() {
 
 			result, err = adapter.EnsureStatusIsTracked()
 			Expect(!result.CancelRequest && err == nil).Should(BeTrue())
+		})
+	})
+
+	Context("When calling getDefaultInternalServicesConfig", func() {
+		AfterEach(func() {
+			deleteResources()
+		})
+
+		BeforeEach(func() {
+			createResources()
+		})
+
+		It("should return a InternalServicesConfig without Spec and with the right ObjectMeta", func() {
+			internalServicesConfig := adapter.getDefaultInternalServicesConfig("namespace")
+			Expect(internalServicesConfig).NotTo(BeNil())
+			Expect(internalServicesConfig.Name).To(Equal(v1alpha1.InternalServicesConfigResourceName))
+			Expect(internalServicesConfig.Namespace).To(Equal("namespace"))
 		})
 	})
 
@@ -225,10 +320,20 @@ var _ = Describe("PipelineRun", Ordered, func() {
 			Kind: "InternalRequest",
 		}
 
+		internalServicesConfig := &v1alpha1.InternalServicesConfig{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      v1alpha1.InternalServicesConfigResourceName,
+				Namespace: "default",
+			},
+		}
+		Expect(k8sClient.Create(ctx, internalServicesConfig)).To(Succeed())
+
 		adapter = NewAdapter(ctx, k8sClient, k8sClient, internalRequest, loader.NewLoader(), ctrl.Log)
+		adapter.internalServicesConfig = internalServicesConfig
 	}
 
 	deleteResources = func() {
+		_ = k8sClient.Delete(ctx, adapter.internalServicesConfig)
 		Expect(k8sClient.Delete(ctx, adapter.internalRequest)).To(Succeed())
 		err := k8sClient.DeleteAllOf(ctx, &tektonv1beta1.PipelineRun{})
 		Expect(err == nil || errors.IsNotFound(err)).To(BeTrue())

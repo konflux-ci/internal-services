@@ -59,6 +59,7 @@ func NewInternalRequestReconciler(client client.Client, remoteClient client.Clie
 //+kubebuilder:rbac:groups=appstudio.redhat.com,resources=internalrequests,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=appstudio.redhat.com,resources=internalrequests/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=appstudio.redhat.com,resources=internalrequests/finalizers,verbs=update
+//+kubebuilder:rbac:groups=appstudio.redhat.com,resources=internalservicesconfigs,verbs=get
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -78,6 +79,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	adapter := NewAdapter(ctx, r.Client, r.InternalClient, internalRequest, loader.NewLoader(), logger)
 
 	return reconciler.ReconcileHandler([]reconciler.ReconcileOperation{
+		adapter.EnsureConfigIsLoaded,
+		adapter.EnsureRequestIsAllowed,
 		adapter.EnsurePipelineRunIsCreated,
 		adapter.EnsureStatusIsTracked,
 	})

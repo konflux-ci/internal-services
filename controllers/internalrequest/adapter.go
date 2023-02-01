@@ -27,19 +27,22 @@ import (
 	"github.com/redhat-appstudio/operator-goodies/reconciler"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"knative.dev/pkg/apis"
+	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 )
 
-// Adapter holds the objects needed to reconcile a Release.
+// Adapter holds the objects needed to reconcile an InternalRequest.
 type Adapter struct {
-	client          client.Client
-	ctx             context.Context
-	internalClient  client.Client
-	internalRequest *v1alpha1.InternalRequest
-	loader          loader.ObjectLoader
-	logger          logr.Logger
+	client                 client.Client
+	internalServicesConfig *v1alpha1.InternalServicesConfig
+	ctx                    context.Context
+	internalClient         client.Client
+	internalRequest        *v1alpha1.InternalRequest
+	loader                 loader.ObjectLoader
+	logger                 logr.Logger
 }
 
 // NewAdapter creates and returns an Adapter instance.
@@ -54,6 +57,27 @@ func NewAdapter(ctx context.Context, client, internalClient client.Client, inter
 	}
 }
 
+// EnsureConfigIsLoaded is an operation that will load the service InternalServicesConfig from the manager namespace. If not found,
+// a new InternalServicesConfig resource will be generated and attached to the adapter.
+func (a *Adapter) EnsureConfigIsLoaded() (reconciler.OperationResult, error) {
+	namespace := os.Getenv("SERVICE_NAMESPACE")
+	if namespace == "" {
+		namespace = "default"
+	}
+
+	var err error
+	a.internalServicesConfig, err = a.loader.GetInternalServicesConfig(a.ctx, a.internalClient, v1alpha1.InternalServicesConfigResourceName, namespace)
+	if err != nil && !errors.IsNotFound(err) {
+		return reconciler.RequeueWithError(err)
+	}
+
+	if err != nil {
+		a.internalServicesConfig = a.getDefaultInternalServicesConfig(namespace)
+	}
+
+	return reconciler.ContinueProcessing()
+}
+
 // EnsurePipelineRunIsCreated is an operation that will ensure that the InternalRequest is handled by creating a new
 // PipelineRun for the Pipeline referenced in the Request field.
 func (a *Adapter) EnsurePipelineRunIsCreated() (reconciler.OperationResult, error) {
@@ -64,7 +88,7 @@ func (a *Adapter) EnsurePipelineRunIsCreated() (reconciler.OperationResult, erro
 
 	if pipelineRun == nil || !a.internalRequest.HasStarted() {
 		if pipelineRun == nil {
-			pipelineRun = tekton.NewPipelineRun(a.internalRequest)
+			pipelineRun = tekton.NewPipelineRun(a.internalRequest, a.internalServicesConfig)
 
 			err = libhandler.SetOwnerAnnotations(a.internalRequest, pipelineRun)
 			if err != nil {
@@ -86,6 +110,22 @@ func (a *Adapter) EnsurePipelineRunIsCreated() (reconciler.OperationResult, erro
 	return reconciler.ContinueProcessing()
 }
 
+// EnsureRequestIsAllowed is an operation that will ensure that the request is coming from a namespace allowed
+// to execute InternalRequests. If the InternalServicesConfig spec.allowList is empty, any request will be allowed regardless of the
+// remote namespace.
+func (a *Adapter) EnsureRequestIsAllowed() (reconciler.OperationResult, error) {
+	for _, namespace := range a.internalServicesConfig.Spec.AllowList {
+		if namespace == a.internalRequest.Namespace {
+			return reconciler.ContinueProcessing()
+		}
+	}
+
+	patch := client.MergeFrom(a.internalRequest.DeepCopy())
+	a.internalRequest.MarkInvalid(v1alpha1.InternalRequestRejected,
+		fmt.Sprintf("the internal request namespace (%s) is not in the allow list", a.internalRequest.Namespace))
+	return reconciler.RequeueOnErrorOrStop(a.client.Status().Patch(a.ctx, a.internalRequest, patch))
+}
+
 // EnsureStatusIsTracked is an operation that will ensure that the release PipelineRun status is tracked
 // in the InternalRequest being processed.
 func (a *Adapter) EnsureStatusIsTracked() (reconciler.OperationResult, error) {
@@ -99,6 +139,16 @@ func (a *Adapter) EnsureStatusIsTracked() (reconciler.OperationResult, error) {
 	}
 
 	return reconciler.ContinueProcessing()
+}
+
+// getDefaultInternalServicesConfig creates and returns a InternalServicesConfig resource in the given namespace with default values.
+func (a *Adapter) getDefaultInternalServicesConfig(namespace string) *v1alpha1.InternalServicesConfig {
+	return &v1alpha1.InternalServicesConfig{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      v1alpha1.InternalServicesConfigResourceName,
+			Namespace: namespace,
+		},
+	}
 }
 
 // registerInternalRequestStatus sets the InternalRequest to Running.

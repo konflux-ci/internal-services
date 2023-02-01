@@ -31,3 +31,9 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - appstudio.redhat.com
+  resources:
+  - internalservicesconfigs
+  verbs:
+  - get
