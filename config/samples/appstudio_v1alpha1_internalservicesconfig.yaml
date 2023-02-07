@@ -1,0 +1,12 @@
+apiVersion: appstudio.redhat.com/v1alpha1
+kind: InternalServicesConfig
+metadata:
+  labels:
+    app.kubernetes.io/name: internalservicesconfig
+    app.kubernetes.io/instance: internalservicesconfig-sample
+    app.kubernetes.io/part-of: internal-services
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: internal-services
+  name: internalservicesconfig-sample
+spec:
+  # TODO(user): Add fields here

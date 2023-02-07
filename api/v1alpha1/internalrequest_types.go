@@ -32,6 +32,9 @@ const (
 	// InternalRequestFailed is the reason set when the PipelineRun failed
 	InternalRequestFailed HandlingReason = "Failed"
 
+	// InternalRequestRejected is the reason set when the InternalRequest is rejected
+	InternalRequestRejected HandlingReason = "Rejected"
+
 	// InternalRequestRunning is the reason set when the PipelineRun starts running
 	InternalRequestRunning HandlingReason = "Running"
 
@@ -76,8 +79,8 @@ type InternalRequestStatus struct {
 	Results map[string]string `json:"results,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Succeeded",type=string,JSONPath=`.status.conditions[?(@.type=="InternalRequestSucceeded")].status`
 // +kubebuilder:printcolumn:name="Reason",type=string,JSONPath=`.status.conditions[?(@.type=="InternalRequestSucceeded")].reason`
 
@@ -122,6 +125,15 @@ func (ir *InternalRequest) MarkFailed(message string) {
 	ir.setStatusConditionWithMessage(InternalRequestSucceededConditionType, metav1.ConditionFalse, InternalRequestFailed, message)
 }
 
+// MarkInvalid changes the Succeeded condition to False with the provided reason and message.
+func (ir *InternalRequest) MarkInvalid(reason HandlingReason, message string) {
+	if ir.HasCompleted() {
+		return
+	}
+
+	ir.setStatusConditionWithMessage(InternalRequestSucceededConditionType, metav1.ConditionFalse, reason, message)
+}
+
 // MarkRunning registers the start time and changes the Succeeded condition to Unknown.
 func (ir *InternalRequest) MarkRunning() {
 	if ir.HasStarted() {
@@ -159,7 +171,7 @@ func (ir *InternalRequest) setStatusConditionWithMessage(conditionType string, s
 	})
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // InternalRequestList contains a list of InternalRequest.
 type InternalRequestList struct {

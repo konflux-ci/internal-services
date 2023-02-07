@@ -15,8 +15,9 @@ var _ = Describe("Loader", Ordered, func() {
 		loader          ObjectLoader
 		createResources func()
 
-		internalRequest *v1alpha1.InternalRequest
-		pipelineRun     *tektonv1beta1.PipelineRun
+		internalServicesConfig *v1alpha1.InternalServicesConfig
+		internalRequest        *v1alpha1.InternalRequest
+		pipelineRun            *tektonv1beta1.PipelineRun
 	)
 
 	BeforeAll(func() {
@@ -69,6 +70,15 @@ var _ = Describe("Loader", Ordered, func() {
 		})
 	})
 
+	Context("When calling GetInternalServicesConfig", func() {
+		It("returns the requested InternalServicesConfig", func() {
+			returnedObject, err := loader.GetInternalServicesConfig(ctx, k8sClient, internalServicesConfig.Name, internalServicesConfig.Namespace)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(returnedObject).NotTo(Equal(&v1alpha1.InternalServicesConfig{}))
+			Expect(returnedObject.Name).To(Equal(internalServicesConfig.Name))
+		})
+	})
+
 	createResources = func() {
 		internalRequest = &v1alpha1.InternalRequest{
 			ObjectMeta: metav1.ObjectMeta{
@@ -80,6 +90,14 @@ var _ = Describe("Loader", Ordered, func() {
 			},
 		}
 		Expect(k8sClient.Create(ctx, internalRequest)).To(Succeed())
+
+		internalServicesConfig = &v1alpha1.InternalServicesConfig{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      v1alpha1.InternalServicesConfigResourceName,
+				Namespace: "default",
+			},
+		}
+		Expect(k8sClient.Create(ctx, internalServicesConfig)).To(Succeed())
 
 		pipelineRun = &tektonv1beta1.PipelineRun{
 			ObjectMeta: metav1.ObjectMeta{

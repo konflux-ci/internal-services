@@ -16,4 +16,12 @@ resources:
   kind: InternalRequest
   path: github.com/redhat-appstudio/internal-services/api/v1alpha1
   version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: redhat.com
+  group: appstudio
+  kind: InternalServicesConfig
+  path: github.com/redhat-appstudio/internal-services/api/v1alpha1
+  version: v1alpha1
 version: "3"

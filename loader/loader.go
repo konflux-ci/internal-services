@@ -12,6 +12,7 @@ import (
 type ObjectLoader interface {
 	GetInternalRequest(ctx context.Context, cli client.Client, name, namespace string) (*v1alpha1.InternalRequest, error)
 	GetInternalRequestPipelineRun(ctx context.Context, cli client.Client, release *v1alpha1.InternalRequest) (*v1beta1.PipelineRun, error)
+	GetInternalServicesConfig(ctx context.Context, cli client.Client, name, namespace string) (*v1alpha1.InternalServicesConfig, error)
 }
 
 type loader struct{}
@@ -27,6 +28,13 @@ func getObject(name, namespace string, cli client.Client, ctx context.Context, o
 		Name:      name,
 		Namespace: namespace,
 	}, object)
+}
+
+// GetInternalServicesConfig returns the InternalServicesConfig with the given name and namespace. If the
+// InternalServicesConfig is not found or the Get operation fails, an error will be returned.
+func (l *loader) GetInternalServicesConfig(ctx context.Context, cli client.Client, name, namespace string) (*v1alpha1.InternalServicesConfig, error) {
+	internalServicesConfig := &v1alpha1.InternalServicesConfig{}
+	return internalServicesConfig, getObject(name, namespace, cli, ctx, internalServicesConfig)
 }
 
 // GetInternalRequest returns the InternalRequest with the given name and namespace. If the InternalRequest is not
