@@ -1,13 +1,21 @@
 ---
 name: App-interface repo update
 on:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows:
+     - "AppStudio Staging CI"
+     - "Red Hat AppStudio CI/CD - Staging"
+    types: [completed]
 jobs:
-  generate:
+  on-failure:
+    runs-on: ubuntu-20.04
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    steps:
+      - run: echo 'The triggering workflow failed'
+  on-success:
     name: Push internal-services resources
     runs-on: ubuntu-20.04
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     env:
       NAMESPACE: stonesoup-int-srvc
       REMOTE_CLIENT_CONFIG_SECRET: remote-client-config
@@ -47,7 +55,7 @@ jobs:
         working-directory: app-interface-deployments/internal-services
       - name: Update image
         run: |
-          sed -i 's/image: controller:latest/image: quay.io\/redhat-appstudio\/internal-services:${{ github.event.pull_request.head.sha }}/' manager.yaml
+          sed -i 's/image: controller:latest/image: quay.io\/redhat-appstudio\/internal-services:${{ github.sha }}/' manager.yaml
         working-directory: app-interface-deployments/internal-services/manager
       - name: Add users to role binding
         run: |
