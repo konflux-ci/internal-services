@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"github.com/redhat-appstudio/internal-services/api/v1alpha1"
 	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"reflect"
 	"strings"
@@ -61,13 +60,6 @@ func NewPipelineRun(internalRequest *v1alpha1.InternalRequest, internalServicesC
 			PipelineRef: getPipelineRef(internalRequest, internalServicesConfig),
 		},
 	}
-
-	pipelineRun.Spec.Workspaces = append(pipelineRun.Spec.Workspaces, tektonv1beta1.WorkspaceBinding{
-		Name: "release-workspace",
-		PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-			ClaimName: "release-pvc",
-		},
-	})
 
 	appendInternalRequestParams(pipelineRun, internalRequest)
 
