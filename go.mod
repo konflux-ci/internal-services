@@ -9,7 +9,6 @@ require (
 	github.com/operator-framework/operator-lib v0.11.0
 	github.com/redhat-appstudio/operator-goodies v0.0.0-20230113090719-a8a43f600367
 	github.com/tektoncd/pipeline v0.42.0
-	k8s.io/api v0.25.4
 	k8s.io/apimachinery v0.25.4
 	k8s.io/client-go v0.25.4
 	knative.dev/pkg v0.0.0-20221011175852-714b7630a836
@@ -90,6 +89,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	k8s.io/api v0.25.4 // indirect
 	k8s.io/apiextensions-apiserver v0.25.2 // indirect
 	k8s.io/component-base v0.25.2 // indirect
 	k8s.io/klog/v2 v2.80.1 // indirect
