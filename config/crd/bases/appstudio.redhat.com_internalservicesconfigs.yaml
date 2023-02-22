@@ -42,15 +42,27 @@ spec:
                 items:
                   type: string
                 type: array
-              catalog:
-                description: Catalog holds the information about the Tekton catalog
+              debug:
+                description: Debug sets the operator to run in debug mode. In this
+                  mode, PipelineRuns and PVCs will not be removed
+                type: boolean
+              volumeClaim:
+                default:
+                  name: workspace
+                  size: 1Gi
+                description: VolumeClaim holds information about the volume to request
+                  for Pipelines requiring a workspace
                 properties:
-                  bundle:
-                    description: Bundle where to find the Tekton Pipelines
-                    type: string
-                  namespace:
-                    description: Namespace where to find the Tekton Pipelines
+                  name:
+                    default: workspace
+                    description: Name is the workspace name
                     pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                    type: string
+                  size:
+                    default: 1Gi
+                    description: Size is the size that will be requested when a workspace
+                      is required by a Pipeline
+                    pattern: ^[1-9][0-9]*(K|M|G)i$
                     type: string
                 type: object
             type: object
