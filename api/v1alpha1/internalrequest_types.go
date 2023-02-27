@@ -22,7 +22,7 @@ import (
 	"time"
 )
 
-// HandlingReason represents a reason for the release "InternalRequestSucceeded" condition.
+// HandlingReason represents a reason for the InternalRequest "InternalRequestSucceeded" condition.
 type HandlingReason string
 
 const (
@@ -61,11 +61,11 @@ type InternalRequestSpec struct {
 
 // InternalRequestStatus defines the observed state of InternalRequest.
 type InternalRequestStatus struct {
-	// StartTime is the time when the Release PipelineRun was created and set to run
+	// StartTime is the time when the InternalRequest PipelineRun was created and set to run
 	// +optional
 	StartTime *metav1.Time `json:"startTime,omitempty"`
 
-	// CompletionTime is the time the Release PipelineRun completed
+	// CompletionTime is the time the InternalRequest PipelineRun completed
 	// +optional
 	CompletionTime *metav1.Time `json:"completionTime,omitempty"`
 

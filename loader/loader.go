@@ -11,7 +11,8 @@ import (
 
 type ObjectLoader interface {
 	GetInternalRequest(ctx context.Context, cli client.Client, name, namespace string) (*v1alpha1.InternalRequest, error)
-	GetInternalRequestPipelineRun(ctx context.Context, cli client.Client, release *v1alpha1.InternalRequest) (*v1beta1.PipelineRun, error)
+	GetInternalRequestPipeline(ctx context.Context, cli client.Client, name, namespace string) (*v1beta1.Pipeline, error)
+	GetInternalRequestPipelineRun(ctx context.Context, cli client.Client, internalRequest *v1alpha1.InternalRequest) (*v1beta1.PipelineRun, error)
 	GetInternalServicesConfig(ctx context.Context, cli client.Client, name, namespace string) (*v1alpha1.InternalServicesConfig, error)
 }
 
@@ -30,18 +31,18 @@ func getObject(name, namespace string, cli client.Client, ctx context.Context, o
 	}, object)
 }
 
-// GetInternalServicesConfig returns the InternalServicesConfig with the given name and namespace. If the
-// InternalServicesConfig is not found or the Get operation fails, an error will be returned.
-func (l *loader) GetInternalServicesConfig(ctx context.Context, cli client.Client, name, namespace string) (*v1alpha1.InternalServicesConfig, error) {
-	internalServicesConfig := &v1alpha1.InternalServicesConfig{}
-	return internalServicesConfig, getObject(name, namespace, cli, ctx, internalServicesConfig)
-}
-
 // GetInternalRequest returns the InternalRequest with the given name and namespace. If the InternalRequest is not
 // found or the Get operation fails, an error will be returned.
 func (l *loader) GetInternalRequest(ctx context.Context, cli client.Client, name, namespace string) (*v1alpha1.InternalRequest, error) {
 	internalRequest := &v1alpha1.InternalRequest{}
 	return internalRequest, getObject(name, namespace, cli, ctx, internalRequest)
+}
+
+// GetInternalRequestPipeline returns the Pipeline with the given name and namespace. If the Pipeline is not
+// found or the Get operation fails, an error will be returned.
+func (l *loader) GetInternalRequestPipeline(ctx context.Context, cli client.Client, name, namespace string) (*v1beta1.Pipeline, error) {
+	pipeline := &v1beta1.Pipeline{}
+	return pipeline, getObject(name, namespace, cli, ctx, pipeline)
 }
 
 // GetInternalRequestPipelineRun returns the PipelineRun referenced by the given InternalRequest or nil if it's not
@@ -60,4 +61,11 @@ func (l *loader) GetInternalRequestPipelineRun(ctx context.Context, cli client.C
 	}
 
 	return nil, err
+}
+
+// GetInternalServicesConfig returns the InternalServicesConfig with the given name and namespace. If the
+// InternalServicesConfig is not found or the Get operation fails, an error will be returned.
+func (l *loader) GetInternalServicesConfig(ctx context.Context, cli client.Client, name, namespace string) (*v1alpha1.InternalServicesConfig, error) {
+	internalServicesConfig := &v1alpha1.InternalServicesConfig{}
+	return internalServicesConfig, getObject(name, namespace, cli, ctx, internalServicesConfig)
 }

@@ -81,10 +81,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	adapter := NewAdapter(ctx, r.Client, r.InternalClient, internalRequest, loader.NewLoader(), logger)
 
 	return reconciler.ReconcileHandler([]reconciler.ReconcileOperation{
-		adapter.EnsureConfigIsLoaded,
+		adapter.EnsureConfigIsLoaded, // This operation sets the config in the adapter to be used in other operations.
 		adapter.EnsureRequestIsAllowed,
+		adapter.EnsurePipelineExists, // This operation sets the pipeline in the adapter to be used in other operations.
 		adapter.EnsurePipelineRunIsCreated,
 		adapter.EnsureStatusIsTracked,
+		adapter.EnsurePipelineRunIsDeleted,
 	})
 }
 
@@ -93,8 +95,8 @@ func SetupController(mgr ctrl.Manager, remoteCluster cluster.Cluster, log *logr.
 	return setupControllerWithManager(mgr, remoteCluster, NewInternalRequestReconciler(mgr.GetClient(), remoteCluster.GetClient(), log, mgr.GetScheme()))
 }
 
-// setupControllerWithManager sets up the controller with the Manager which monitors new Releases and filters out
-// status updates. This controller also watches for PipelineRuns created by this controller and owned by the Releases so
+// setupControllerWithManager sets up the controller with the Manager which monitors new InternalRequests and filters out
+// status updates. This controller also watches for PipelineRuns created by this controller and owned by the InternalRequests so
 // the owner gets reconciled on PipelineRun changes.
 func setupControllerWithManager(mgr ctrl.Manager, remoteCluster cluster.Cluster, reconciler *Reconciler) error {
 	return ctrl.NewControllerManagedBy(mgr).

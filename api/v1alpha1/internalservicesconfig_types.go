@@ -28,20 +28,26 @@ type InternalServicesConfigSpec struct {
 	// +required
 	AllowList []string `json:"allowList,omitempty"`
 
-	// Catalog holds the information about the Tekton catalog
+	// Debug sets the operator to run in debug mode. In this mode, PipelineRuns and PVCs will not be removed
 	// +optional
-	Catalog Catalog `json:"catalog,omitempty"`
+	Debug bool `json:"debug,omitempty"`
+
+	// VolumeClaim holds information about the volume to request for Pipelines requiring a workspace
+	// +kubebuilder:default={name:"workspace", size:"1Gi"}
+	VolumeClaim VolumeClaim `json:"volumeClaim,omitempty"`
 }
 
-type Catalog struct {
-	// Namespace where to find the Tekton Pipelines
+type VolumeClaim struct {
+	// Name is the workspace name
 	// +kubebuilder:validation:Pattern=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+	// +kubebuilder:default="workspace"
 	// +optional
-	Namespace string `json:"namespace,omitempty"`
+	Name string `json:"name,omitempty"`
 
-	// Bundle where to find the Tekton Pipelines
-	// +optional
-	Bundle string `json:"bundle,omitempty"`
+	// Size is the size that will be requested when a workspace is required by a Pipeline
+	// +kubebuilder:validation:Pattern=^[1-9][0-9]*(K|M|G)i$
+	// +kubebuilder:default="1Gi"
+	Size string `json:"size,omitempty"`
 }
 
 // InternalServicesConfigStatus defines the observed state of InternalServicesConfig.

@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-logr/logr"
-	libhandler "github.com/operator-framework/operator-lib/handler"
 	"github.com/redhat-appstudio/internal-services/api/v1alpha1"
 	"github.com/redhat-appstudio/internal-services/loader"
 	"github.com/redhat-appstudio/internal-services/tekton"
@@ -31,18 +30,18 @@ import (
 	"knative.dev/pkg/apis"
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
 )
 
 // Adapter holds the objects needed to reconcile an InternalRequest.
 type Adapter struct {
-	client                 client.Client
-	internalServicesConfig *v1alpha1.InternalServicesConfig
-	ctx                    context.Context
-	internalClient         client.Client
-	internalRequest        *v1alpha1.InternalRequest
-	loader                 loader.ObjectLoader
-	logger                 logr.Logger
+	client                  client.Client
+	internalServicesConfig  *v1alpha1.InternalServicesConfig
+	ctx                     context.Context
+	internalClient          client.Client
+	internalRequest         *v1alpha1.InternalRequest
+	internalRequestPipeline *v1beta1.Pipeline
+	loader                  loader.ObjectLoader
+	logger                  logr.Logger
 }
 
 // NewAdapter creates and returns an Adapter instance.
@@ -59,6 +58,8 @@ func NewAdapter(ctx context.Context, client, internalClient client.Client, inter
 
 // EnsureConfigIsLoaded is an operation that will load the service InternalServicesConfig from the manager namespace. If not found,
 // a new InternalServicesConfig resource will be generated and attached to the adapter.
+//
+// Note: This operation sets values in the adapter to be used by other operations, so it should be always enabled.
 func (a *Adapter) EnsureConfigIsLoaded() (reconciler.OperationResult, error) {
 	namespace := os.Getenv("SERVICE_NAMESPACE")
 	if namespace == "" {
@@ -78,6 +79,25 @@ func (a *Adapter) EnsureConfigIsLoaded() (reconciler.OperationResult, error) {
 	return reconciler.ContinueProcessing()
 }
 
+// EnsurePipelineExists is an operation that will ensure the Pipeline referenced by the InternalRequest exists and add it
+// to the adapter, so it can be used in other operations. If the Pipeline doesn't exist, the InternalRequest will be
+// marked as failed.
+//
+// Note: This operation sets values in the adapter to be used by other operations, so it should be always enabled.
+func (a *Adapter) EnsurePipelineExists() (reconciler.OperationResult, error) {
+	var err error
+	a.internalRequestPipeline, err = a.loader.GetInternalRequestPipeline(a.ctx, a.internalClient,
+		a.internalRequest.Spec.Request, a.internalServicesConfig.Namespace)
+
+	if err != nil {
+		patch := client.MergeFrom(a.internalRequest.DeepCopy())
+		a.internalRequest.MarkFailed(fmt.Sprintf("No endpoint to handle '%s' requests", a.internalRequest.Spec.Request))
+		return reconciler.RequeueOnErrorOrStop(a.client.Status().Patch(a.ctx, a.internalRequest, patch))
+	}
+
+	return reconciler.ContinueProcessing()
+}
+
 // EnsurePipelineRunIsCreated is an operation that will ensure that the InternalRequest is handled by creating a new
 // PipelineRun for the Pipeline referenced in the Request field.
 func (a *Adapter) EnsurePipelineRunIsCreated() (reconciler.OperationResult, error) {
@@ -88,14 +108,7 @@ func (a *Adapter) EnsurePipelineRunIsCreated() (reconciler.OperationResult, erro
 
 	if pipelineRun == nil || !a.internalRequest.HasStarted() {
 		if pipelineRun == nil {
-			pipelineRun = tekton.NewPipelineRun(a.internalRequest, a.internalServicesConfig)
-
-			err = libhandler.SetOwnerAnnotations(a.internalRequest, pipelineRun)
-			if err != nil {
-				return reconciler.RequeueWithError(err)
-			}
-
-			err = a.internalClient.Create(a.ctx, pipelineRun)
+			pipelineRun, err = a.createInternalRequestPipelineRun()
 			if err != nil {
 				return reconciler.RequeueWithError(err)
 			}
@@ -108,6 +121,27 @@ func (a *Adapter) EnsurePipelineRunIsCreated() (reconciler.OperationResult, erro
 	}
 
 	return reconciler.ContinueProcessing()
+}
+
+// EnsurePipelineRunIsDeleted is an operation that will ensure that the PipelineRun created to handle the InternalRequest
+// is deleted once it finishes.
+func (a *Adapter) EnsurePipelineRunIsDeleted() (reconciler.OperationResult, error) {
+	if !a.internalRequest.HasCompleted() {
+		return reconciler.ContinueProcessing()
+	}
+
+	if a.internalServicesConfig.Spec.Debug {
+		a.logger.Info("Running in debug mode. Skipping PipelineRun deletion")
+
+		return reconciler.ContinueProcessing()
+	}
+
+	pipelineRun, err := a.loader.GetInternalRequestPipelineRun(a.ctx, a.internalClient, a.internalRequest)
+	if err != nil {
+		return reconciler.RequeueWithError(err)
+	}
+
+	return reconciler.RequeueOnErrorOrContinue(a.internalClient.Delete(a.ctx, pipelineRun))
 }
 
 // EnsureRequestIsAllowed is an operation that will ensure that the request is coming from a namespace allowed
@@ -126,7 +160,7 @@ func (a *Adapter) EnsureRequestIsAllowed() (reconciler.OperationResult, error) {
 	return reconciler.RequeueOnErrorOrStop(a.client.Status().Patch(a.ctx, a.internalRequest, patch))
 }
 
-// EnsureStatusIsTracked is an operation that will ensure that the release PipelineRun status is tracked
+// EnsureStatusIsTracked is an operation that will ensure that the InternalRequest PipelineRun status is tracked
 // in the InternalRequest being processed.
 func (a *Adapter) EnsureStatusIsTracked() (reconciler.OperationResult, error) {
 	pipelineRun, err := a.loader.GetInternalRequestPipelineRun(a.ctx, a.internalClient, a.internalRequest)
@@ -139,6 +173,24 @@ func (a *Adapter) EnsureStatusIsTracked() (reconciler.OperationResult, error) {
 	}
 
 	return reconciler.ContinueProcessing()
+}
+
+// createInternalRequestPipelineRun creates and returns a new InternalRequest PipelineRun. The new PipelineRun will
+// include owner annotations, so it triggers InternalRequest reconciles whenever it changes. The Pipeline information
+// and its parameters will be extracted from the InternalRequest.
+func (a *Adapter) createInternalRequestPipelineRun() (*v1beta1.PipelineRun, error) {
+	pipelineRun := tekton.NewInternalRequestPipelineRun(a.internalServicesConfig).
+		WithInternalRequest(a.internalRequest).
+		WithOwner(a.internalRequest).
+		WithPipeline(a.internalRequestPipeline, a.internalServicesConfig).
+		AsPipelineRun()
+
+	err := a.internalClient.Create(a.ctx, pipelineRun)
+	if err != nil {
+		return nil, err
+	}
+
+	return pipelineRun, nil
 }
 
 // getDefaultInternalServicesConfig creates and returns a InternalServicesConfig resource in the given namespace with default values.
@@ -176,12 +228,6 @@ func (a *Adapter) registerInternalRequestPipelineRunStatus(pipelineRun *v1beta1.
 	if condition.IsTrue() {
 		a.internalRequest.Status.Results = tekton.GetResultsFromPipelineRun(pipelineRun)
 		a.internalRequest.MarkSucceeded()
-	} else if strings.Contains(condition.Message, "not found") {
-		var endpoint string
-		if pipelineRun.Spec.PipelineRef != nil {
-			endpoint = pipelineRun.Spec.PipelineRef.Name
-		}
-		a.internalRequest.MarkFailed(fmt.Sprintf("No endpoint to handle '%s' requests", endpoint))
 	} else {
 		a.internalRequest.MarkFailed(condition.Message)
 	}
