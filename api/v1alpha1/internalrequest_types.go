@@ -17,9 +17,11 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"time"
+
+	"github.com/redhat-appstudio/internal-services/metrics"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"time"
 )
 
 // HandlingReason represents a reason for the InternalRequest "InternalRequestSucceeded" condition.
@@ -83,7 +85,6 @@ type InternalRequestStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Succeeded",type=string,JSONPath=`.status.conditions[?(@.type=="InternalRequestSucceeded")].status`
 // +kubebuilder:printcolumn:name="Reason",type=string,JSONPath=`.status.conditions[?(@.type=="InternalRequestSucceeded")].reason`
-
 // InternalRequest is the Schema for the internalrequests API.
 type InternalRequest struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -117,12 +118,15 @@ func (ir *InternalRequest) HasSucceeded() bool {
 
 // MarkFailed registers the completion time and changes the Succeeded condition to False with the provided message.
 func (ir *InternalRequest) MarkFailed(message string) {
-	if ir.HasCompleted() {
+	if !ir.HasStarted() || ir.HasCompleted() {
 		return
 	}
 
 	ir.Status.CompletionTime = &metav1.Time{Time: time.Now()}
 	ir.setStatusConditionWithMessage(InternalRequestSucceededConditionType, metav1.ConditionFalse, InternalRequestFailed, message)
+
+	go metrics.RegisterCompletedInternalRequest(ir.Spec.Request, ir.Namespace, InternalRequestFailed.String(),
+		ir.Status.StartTime, ir.Status.CompletionTime, false)
 }
 
 // MarkInvalid changes the Succeeded condition to False with the provided reason and message.
@@ -146,12 +150,14 @@ func (ir *InternalRequest) MarkRunning() {
 
 // MarkSucceeded registers the completion time and changes the Succeeded condition to True.
 func (ir *InternalRequest) MarkSucceeded() {
-	if ir.HasCompleted() {
+	if !ir.HasStarted() || ir.HasCompleted() {
 		return
 	}
 
 	ir.Status.CompletionTime = &metav1.Time{Time: time.Now()}
 	ir.setStatusCondition(InternalRequestSucceededConditionType, metav1.ConditionTrue, InternalRequestSucceeded)
+
+	go metrics.RegisterCompletedInternalRequest(ir.Spec.Request, ir.Namespace, InternalRequestSucceeded.String(), ir.Status.StartTime, ir.Status.CompletionTime, true)
 }
 
 // setStatusCondition creates a new condition with the given InternalRequestSucceededConditionType, status and reason. Then, it sets this new condition,

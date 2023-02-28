@@ -16,6 +16,7 @@ COPY main.go main.go
 COPY api/ api/
 COPY controllers/ controllers/
 COPY loader/ loader/
+COPY metrics/ metrics/
 COPY tekton/ tekton/
 
 # Build
