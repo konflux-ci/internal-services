@@ -49,6 +49,7 @@ rules:
   - pipelineruns
   verbs:
   - create
+  - delete
   - get
   - list
   - watch
@@ -58,3 +59,11 @@ rules:
   - pipelineruns/status
   verbs:
   - get
+- apiGroups:
+  - tekton.dev
+  resources:
+  - pipelines
+  verbs:
+  - get
+  - list
+  - watch
