@@ -18,6 +18,8 @@ package internalrequest
 
 import (
 	"fmt"
+	"reflect"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	libhandler "github.com/operator-framework/operator-lib/handler"
@@ -27,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -96,6 +97,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 					Err:        fmt.Errorf("not found"),
 				},
 			})
+			adapter.internalRequest.MarkRunning()
 
 			result, err := adapter.EnsurePipelineExists()
 			Expect(result.CancelRequest && !result.RequeueRequest).To(BeTrue())
@@ -161,8 +163,8 @@ var _ = Describe("PipelineRun", Ordered, func() {
 					Err:        fmt.Errorf("not found"),
 				},
 			})
+			adapter.internalRequest.MarkRunning()
 			adapter.internalRequest.MarkSucceeded()
-
 			result, err := adapter.EnsurePipelineRunIsDeleted()
 			Expect(!result.CancelRequest && result.RequeueRequest).To(BeTrue())
 			Expect(err).NotTo(BeNil())
@@ -376,6 +378,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		})
 
 		It("should set the InternalRequest as succeeded if the PipelineRun succeeded", func() {
+			adapter.internalRequest.MarkRunning()
 			pipelineRun := &tektonv1beta1.PipelineRun{}
 			pipelineRun.Status.MarkSucceeded("", "")
 			Expect(adapter.registerInternalRequestPipelineRunStatus(pipelineRun)).To(BeNil())
@@ -383,6 +386,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		})
 
 		It("should set the InternalRequest as failed if the PipelineRun failed", func() {
+			adapter.internalRequest.MarkRunning()
 			pipelineRun := &tektonv1beta1.PipelineRun{}
 			pipelineRun.Status.MarkFailed("", "")
 			Expect(adapter.registerInternalRequestPipelineRunStatus(pipelineRun)).To(BeNil())
