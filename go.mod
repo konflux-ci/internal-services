@@ -10,6 +10,7 @@ require (
 	github.com/prometheus/client_golang v1.13.0
 	github.com/redhat-appstudio/operator-goodies v0.0.0-20230113090719-a8a43f600367
 	github.com/tektoncd/pipeline v0.42.0
+	go.uber.org/zap v1.23.0
 	k8s.io/api v0.25.4
 	k8s.io/apimachinery v0.25.4
 	k8s.io/client-go v0.25.4
@@ -72,7 +73,6 @@ require (
 	go.opencensus.io v0.24.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
-	go.uber.org/zap v1.23.0 // indirect
 	golang.org/x/crypto v0.2.0 // indirect
 	golang.org/x/net v0.7.0 // indirect
 	golang.org/x/oauth2 v0.2.0 // indirect
