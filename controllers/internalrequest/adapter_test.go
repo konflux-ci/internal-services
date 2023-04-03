@@ -234,6 +234,30 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		})
 	})
 
+	Context("When calling EnsureRequestINotCompleted", func() {
+		AfterEach(func() {
+			deleteResources()
+		})
+
+		BeforeEach(func() {
+			createResources()
+		})
+
+		It("should stop processing when the InternalRequest is completed", func() {
+			adapter.internalRequest.MarkRunning()
+			adapter.internalRequest.MarkSucceeded()
+			result, err := adapter.EnsureRequestINotCompleted()
+			Expect(result.CancelRequest && !result.RequeueRequest).To(BeTrue())
+			Expect(err).To(BeNil())
+		})
+
+		It("should continue processing when the InternalRequest is not completed", func() {
+			result, err := adapter.EnsureRequestINotCompleted()
+			Expect(!result.CancelRequest && !result.RequeueRequest).To(BeTrue())
+			Expect(err).To(BeNil())
+		})
+	})
+
 	Context("When calling EnsureStatusIsTracked", func() {
 		AfterEach(func() {
 			deleteResources()

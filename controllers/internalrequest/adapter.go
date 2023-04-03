@@ -160,6 +160,15 @@ func (a *Adapter) EnsureRequestIsAllowed() (reconciler.OperationResult, error) {
 	return reconciler.RequeueOnErrorOrStop(a.client.Status().Patch(a.ctx, a.internalRequest, patch))
 }
 
+// EnsureRequestINotCompleted is an operation that will stop processing a request if it was completed already.
+func (a *Adapter) EnsureRequestINotCompleted() (reconciler.OperationResult, error) {
+	if a.internalRequest.HasCompleted() {
+		return reconciler.StopProcessing()
+	}
+
+	return reconciler.ContinueProcessing()
+}
+
 // EnsureStatusIsTracked is an operation that will ensure that the InternalRequest PipelineRun status is tracked
 // in the InternalRequest being processed.
 func (a *Adapter) EnsureStatusIsTracked() (reconciler.OperationResult, error) {
