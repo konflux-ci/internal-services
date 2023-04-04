@@ -85,6 +85,7 @@ type InternalRequestStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Succeeded",type=string,JSONPath=`.status.conditions[?(@.type=="InternalRequestSucceeded")].status`
 // +kubebuilder:printcolumn:name="Reason",type=string,JSONPath=`.status.conditions[?(@.type=="InternalRequestSucceeded")].reason`
+
 // InternalRequest is the Schema for the internalrequests API.
 type InternalRequest struct {
 	metav1.TypeMeta   `json:",inline"`
