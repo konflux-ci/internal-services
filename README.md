@@ -9,6 +9,9 @@ Internal services is a Kubernetes operator to offer a way to run internal querie
     - [Build and push a new image](#build-and-push-a-new-image)
     - [Running tests](#running-tests)
 - [Disabling Webhooks for local development](#disabling-webhooks-for-local-development)
+- [Accessing the logs](#accessing-the-logs)
+    - [CloudWatch](#cloudwatch)
+    - [Splunk](#splunk)
 - [Testing the operator using Kind](#testing-the-operator-using-kind)
     - [Installing `kind`](#installing-kind)
     - [Installing `kubectl`](#installing-kubectl)
@@ -72,6 +75,26 @@ using the following command:
 ```shell
 $ ENABLE_WEBHOOKS=false make run install
 ```
+## Accessing the logs
+
+### CloudWatch
+
+The procedure to request access to CloudWatch is documented in the [Getting Access](https://gitlab.cee.redhat.com/service/app-interface/-/blob/master/docs/stonesoup/sop/getting-access.md#gain-view-access-to-appsre-logs-including-logs-from-the-fleet-manager-cluster-and-argocd) page.
+Make sure MFA is enabled to your account, otherwise it will not be possible to access the logs.
+
+Once in the CloudWatch web console you can search for `stonesoup-int-svc` in the log group search box.
+
+### Splunk
+
+First access the [Splunk & app-sre](https://gitlab.cee.redhat.com/service/app-interface/-/blob/master/docs/app-sre/splunk.md#getting-support-working-with-it) page and complete the "Access to Monitoring Platform" request.
+
+Once you have the access granted, go to the monitoring URL (will be given by Corporate IT team) and use the following query in the search box:
+
+```
+index="rh_tekton_pipeline" tkn_namespace_name="stonesoup-int-srvc"
+```
+
+As of May.2023 no logs for Internal Services are sent to Splunk.
 
 ## Testing the operator using Kind
 
@@ -245,3 +268,6 @@ status:
 ## Links
 
 - [Configuring the RHTAP Internal Services system](https://docs.google.com/document/d/1ElMVAgHEZ0NHcy9QAJtJAd6LrSY_n8Al18oMPE3STm0/preview)
+- [Gain view access to RHTAP logs](https://gitlab.cee.redhat.com/service/app-interface/-/blob/master/docs/stonesoup/sop/getting-access.md#gain-view-access-to-rhtap-logs)
+- [Splunk & app-sre](https://gitlab.cee.redhat.com/service/app-interface/-/blob/master/docs/app-sre/splunk.md#getting-support-working-with-it)
+- [Kind - Rootless](https://kind.sigs.k8s.io/docs/user/rootless/)
