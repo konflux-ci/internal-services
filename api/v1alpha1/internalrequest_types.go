@@ -17,36 +17,13 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"github.com/redhat-appstudio/operator-toolkit/conditions"
 	"time"
 
 	"github.com/redhat-appstudio/internal-services/metrics"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-// HandlingReason represents a reason for the InternalRequest "InternalRequestSucceeded" condition.
-type HandlingReason string
-
-const (
-	// InternalRequestSucceededConditionType is the type used when setting a status condition
-	InternalRequestSucceededConditionType string = "InternalRequestSucceeded"
-
-	// InternalRequestFailed is the reason set when the PipelineRun failed
-	InternalRequestFailed HandlingReason = "Failed"
-
-	// InternalRequestRejected is the reason set when the InternalRequest is rejected
-	InternalRequestRejected HandlingReason = "Rejected"
-
-	// InternalRequestRunning is the reason set when the PipelineRun starts running
-	InternalRequestRunning HandlingReason = "Running"
-
-	// InternalRequestSucceeded is the reason set when the PipelineRun has succeeded
-	InternalRequestSucceeded HandlingReason = "Succeeded"
-)
-
-func (rr HandlingReason) String() string {
-	return string(rr)
-}
 
 // InternalRequestSpec defines the desired state of InternalRequest.
 type InternalRequestSpec struct {
@@ -83,8 +60,8 @@ type InternalRequestStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="Succeeded",type=string,JSONPath=`.status.conditions[?(@.type=="InternalRequestSucceeded")].status`
-// +kubebuilder:printcolumn:name="Reason",type=string,JSONPath=`.status.conditions[?(@.type=="InternalRequestSucceeded")].reason`
+// +kubebuilder:printcolumn:name="Succeeded",type=string,JSONPath=`.status.conditions[?(@.type=="SucceededReason")].status`
+// +kubebuilder:printcolumn:name="Reason",type=string,JSONPath=`.status.conditions[?(@.type=="SucceededReason")].reason`
 
 // InternalRequest is the Schema for the internalrequests API.
 type InternalRequest struct {
@@ -97,85 +74,88 @@ type InternalRequest struct {
 
 // HasCompleted checks whether the InternalRequest has been completed.
 func (ir *InternalRequest) HasCompleted() bool {
-	condition := meta.FindStatusCondition(ir.Status.Conditions, InternalRequestSucceededConditionType)
-	return condition != nil && condition.Status != metav1.ConditionUnknown && ir.Status.CompletionTime != nil
+	condition := meta.FindStatusCondition(ir.Status.Conditions, SucceededConditionType.String())
+
+	switch {
+	case condition == nil:
+		return false
+	case condition.Status == metav1.ConditionTrue:
+		return true
+	default:
+		return condition.Status == metav1.ConditionFalse && condition.Reason != RunningReason.String()
+	}
 }
 
 // HasFailed checks whether the InternalRequest has failed.
 func (ir *InternalRequest) HasFailed() bool {
-	return meta.IsStatusConditionFalse(ir.Status.Conditions, InternalRequestSucceededConditionType)
-}
+	condition := meta.FindStatusCondition(ir.Status.Conditions, SucceededConditionType.String())
 
-// HasStarted checks whether the InternalRequest has started.
-func (ir *InternalRequest) HasStarted() bool {
-	condition := meta.FindStatusCondition(ir.Status.Conditions, InternalRequestSucceededConditionType)
-	return condition != nil && ir.Status.StartTime != nil
+	switch {
+	case condition == nil:
+		return false
+	case condition.Status == metav1.ConditionTrue:
+		return false
+	default:
+		return condition.Status == metav1.ConditionFalse && condition.Reason != RunningReason.String()
+	}
 }
 
 // HasSucceeded checks whether the InternalRequest has succeeded.
 func (ir *InternalRequest) HasSucceeded() bool {
-	return meta.IsStatusConditionTrue(ir.Status.Conditions, InternalRequestSucceededConditionType)
+	return meta.IsStatusConditionTrue(ir.Status.Conditions, SucceededConditionType.String())
+}
+
+func (ir *InternalRequest) IsRunning() bool {
+	condition := meta.FindStatusCondition(ir.Status.Conditions, SucceededConditionType.String())
+	return condition != nil && condition.Status != metav1.ConditionTrue && condition.Reason == RunningReason.String()
 }
 
 // MarkFailed registers the completion time and changes the Succeeded condition to False with the provided message.
 func (ir *InternalRequest) MarkFailed(message string) {
-	if !ir.HasStarted() || ir.HasCompleted() {
-		return
-	}
-
-	ir.Status.CompletionTime = &metav1.Time{Time: time.Now()}
-	ir.setStatusConditionWithMessage(InternalRequestSucceededConditionType, metav1.ConditionFalse, InternalRequestFailed, message)
-
-	go metrics.RegisterCompletedInternalRequest(ir.Spec.Request, ir.Namespace, InternalRequestFailed.String(),
-		ir.Status.StartTime, ir.Status.CompletionTime, false)
-}
-
-// MarkInvalid changes the Succeeded condition to False with the provided reason and message.
-func (ir *InternalRequest) MarkInvalid(reason HandlingReason, message string) {
 	if ir.HasCompleted() {
 		return
 	}
 
-	ir.setStatusConditionWithMessage(InternalRequestSucceededConditionType, metav1.ConditionFalse, reason, message)
+	ir.Status.CompletionTime = &metav1.Time{Time: time.Now()}
+	conditions.SetConditionWithMessage(&ir.Status.Conditions, SucceededConditionType, metav1.ConditionFalse, FailedReason, message)
+
+	go metrics.RegisterCompletedInternalRequest(ir.Spec.Request, ir.Namespace, FailedReason.String(),
+		ir.Status.StartTime, ir.Status.CompletionTime, false)
+}
+
+// MarkRejected changes the Succeeded condition to False with the provided reason and message.
+func (ir *InternalRequest) MarkRejected(message string) {
+	if ir.HasCompleted() {
+		return
+	}
+
+	conditions.SetConditionWithMessage(&ir.Status.Conditions, SucceededConditionType, metav1.ConditionFalse, RejectedReason, message)
+
 }
 
 // MarkRunning registers the start time and changes the Succeeded condition to Unknown.
 func (ir *InternalRequest) MarkRunning() {
-	if ir.HasStarted() {
+	if ir.HasCompleted() {
 		return
 	}
 
-	ir.Status.StartTime = &metav1.Time{Time: time.Now()}
-	ir.setStatusCondition(InternalRequestSucceededConditionType, metav1.ConditionUnknown, InternalRequestRunning)
+	if !ir.IsRunning() {
+		ir.Status.StartTime = &metav1.Time{Time: time.Now()}
+	}
+
+	conditions.SetCondition(&ir.Status.Conditions, SucceededConditionType, metav1.ConditionFalse, RunningReason)
 }
 
 // MarkSucceeded registers the completion time and changes the Succeeded condition to True.
 func (ir *InternalRequest) MarkSucceeded() {
-	if !ir.HasStarted() || ir.HasCompleted() {
+	if ir.HasCompleted() {
 		return
 	}
 
 	ir.Status.CompletionTime = &metav1.Time{Time: time.Now()}
-	ir.setStatusCondition(InternalRequestSucceededConditionType, metav1.ConditionTrue, InternalRequestSucceeded)
+	conditions.SetCondition(&ir.Status.Conditions, SucceededConditionType, metav1.ConditionTrue, SucceededReason)
 
-	go metrics.RegisterCompletedInternalRequest(ir.Spec.Request, ir.Namespace, InternalRequestSucceeded.String(), ir.Status.StartTime, ir.Status.CompletionTime, true)
-}
-
-// setStatusCondition creates a new condition with the given InternalRequestSucceededConditionType, status and reason. Then, it sets this new condition,
-// unsetting previous conditions with the same type as necessary.
-func (ir *InternalRequest) setStatusCondition(conditionType string, status metav1.ConditionStatus, reason HandlingReason) {
-	ir.setStatusConditionWithMessage(conditionType, status, reason, "")
-}
-
-// setStatusConditionWithMessage creates a new condition with the given InternalRequestSucceededConditionType, status, reason and message. Then, it sets this new condition,
-// unsetting previous conditions with the same type as necessary.
-func (ir *InternalRequest) setStatusConditionWithMessage(conditionType string, status metav1.ConditionStatus, reason HandlingReason, message string) {
-	meta.SetStatusCondition(&ir.Status.Conditions, metav1.Condition{
-		Type:    conditionType,
-		Status:  status,
-		Reason:  reason.String(),
-		Message: message,
-	})
+	go metrics.RegisterCompletedInternalRequest(ir.Spec.Request, ir.Namespace, SucceededReason.String(), ir.Status.StartTime, ir.Status.CompletionTime, true)
 }
 
 // +kubebuilder:object:root=true

@@ -106,7 +106,7 @@ func (a *Adapter) EnsurePipelineRunIsCreated() (reconciler.OperationResult, erro
 		return reconciler.RequeueWithError(err)
 	}
 
-	if pipelineRun == nil || !a.internalRequest.HasStarted() {
+	if pipelineRun == nil || !a.internalRequest.IsRunning() {
 		if pipelineRun == nil {
 			pipelineRun, err = a.createInternalRequestPipelineRun()
 			if err != nil {
@@ -155,8 +155,9 @@ func (a *Adapter) EnsureRequestIsAllowed() (reconciler.OperationResult, error) {
 	}
 
 	patch := client.MergeFrom(a.internalRequest.DeepCopy())
-	a.internalRequest.MarkInvalid(v1alpha1.InternalRequestRejected,
-		fmt.Sprintf("the internal request namespace (%s) is not in the allow list", a.internalRequest.Namespace))
+	a.internalRequest.MarkRejected(
+		fmt.Sprintf("the internal request namespace (%s) is not in the allow list", a.internalRequest.Namespace),
+	)
 	return reconciler.RequeueOnErrorOrStop(a.client.Status().Patch(a.ctx, a.internalRequest, patch))
 }
 
