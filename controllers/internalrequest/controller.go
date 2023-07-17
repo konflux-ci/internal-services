@@ -27,7 +27,6 @@ import (
 	"github.com/redhat-appstudio/operator-toolkit/predicates"
 	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -38,12 +37,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-// Reconciler reconciles an InternalRequest object
-type Reconciler struct {
-	Client         client.Client
-	Log            logr.Logger
-	InternalClient client.Client
-	Scheme         *runtime.Scheme
+// Controller reconciles an InternalRequest object
+type Controller struct {
+	client         client.Client
+	internalClient client.Client
+	log            logr.Logger
 }
 
 // +kubebuilder:rbac:groups=appstudio.redhat.com,resources=internalrequests,verbs=get;list;watch;create;update;patch;delete
@@ -56,11 +54,11 @@ type Reconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	logger := r.Log.WithValues("InternalRequest", req.NamespacedName)
+func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	logger := c.log.WithValues("InternalRequest", req.NamespacedName)
 
 	internalRequest := &v1alpha1.InternalRequest{}
-	err := r.Client.Get(ctx, req.NamespacedName, internalRequest)
+	err := c.client.Get(ctx, req.NamespacedName, internalRequest)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return ctrl.Result{}, nil
@@ -69,7 +67,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	adapter := NewAdapter(ctx, r.Client, r.InternalClient, internalRequest, loader.NewLoader(), logger)
+	adapter := NewAdapter(ctx, c.client, c.internalClient, internalRequest, loader.NewLoader(), logger)
 
 	return controller.ReconcileHandler([]controller.Operation{
 		adapter.EnsureRequestINotCompleted,
@@ -85,10 +83,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 // Register registers the controller with the passed manager and log. This controller monitors new InternalRequests and
 // filters out status updates. It also watches for PipelineRuns created by this controller and owned by the
 // InternalRequests so the owner gets reconciled on PipelineRun changes.
-func (r *Reconciler) Register(mgr ctrl.Manager, log *logr.Logger, remoteCluster cluster.Cluster) error {
-	r.Client = remoteCluster.GetClient()
-	r.InternalClient = mgr.GetClient()
-	r.Log = log.WithName("internalRequest")
+func (c *Controller) Register(mgr ctrl.Manager, log *logr.Logger, remoteCluster cluster.Cluster) error {
+	c.client = mgr.GetClient()
+	c.log = log.WithName("internalRequest")
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(
@@ -106,5 +103,5 @@ func (r *Reconciler) Register(mgr ctrl.Manager, log *logr.Logger, remoteCluster 
 				Group: "appstudio.redhat.com",
 			},
 		}, builder.WithPredicates(tekton.InternalRequestPipelineRunSucceededPredicate())).
-		Complete(r)
+		Complete(c)
 }

@@ -22,5 +22,5 @@ import (
 )
 
 var EnabledControllers = []controller.Controller{
-	&internalrequest.Reconciler{},
+	&internalrequest.Controller{},
 }
