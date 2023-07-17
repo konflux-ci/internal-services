@@ -119,8 +119,7 @@ func (ir *InternalRequest) MarkFailed(message string) {
 	ir.Status.CompletionTime = &metav1.Time{Time: time.Now()}
 	conditions.SetConditionWithMessage(&ir.Status.Conditions, SucceededConditionType, metav1.ConditionFalse, FailedReason, message)
 
-	go metrics.RegisterCompletedInternalRequest(ir.Spec.Request, ir.Namespace, FailedReason.String(),
-		ir.Status.StartTime, ir.Status.CompletionTime, false)
+	go metrics.RegisterCompletedInternalRequest(ir.Status.StartTime, ir.Status.CompletionTime, ir.Namespace, FailedReason.String(), ir.Spec.Request)
 }
 
 // MarkRejected changes the Succeeded condition to False with the provided reason and message.
@@ -144,6 +143,7 @@ func (ir *InternalRequest) MarkRunning() {
 	}
 
 	conditions.SetCondition(&ir.Status.Conditions, SucceededConditionType, metav1.ConditionFalse, RunningReason)
+	go metrics.RegisterNewInternalRequest()
 }
 
 // MarkSucceeded registers the completion time and changes the Succeeded condition to True.
@@ -155,7 +155,7 @@ func (ir *InternalRequest) MarkSucceeded() {
 	ir.Status.CompletionTime = &metav1.Time{Time: time.Now()}
 	conditions.SetCondition(&ir.Status.Conditions, SucceededConditionType, metav1.ConditionTrue, SucceededReason)
 
-	go metrics.RegisterCompletedInternalRequest(ir.Spec.Request, ir.Namespace, SucceededReason.String(), ir.Status.StartTime, ir.Status.CompletionTime, true)
+	go metrics.RegisterCompletedInternalRequest(ir.Status.StartTime, ir.Status.CompletionTime, ir.Namespace, SucceededReason.String(), ir.Spec.Request)
 }
 
 // +kubebuilder:object:root=true

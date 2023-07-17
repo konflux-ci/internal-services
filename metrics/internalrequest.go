@@ -17,63 +17,77 @@ limitations under the License.
 package metrics
 
 import (
-	"strconv"
-
 	"github.com/prometheus/client_golang/prometheus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
 var (
-	InternalRequestAttemptConcurrentTotal = prometheus.NewGauge(
+	InternalRequestConcurrentTotal = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "internal_request_attempt_concurrent_requests",
+			Name: "internal_request_concurrent_requests",
 			Help: "Total number of concurrent InternalRequest attempts",
 		},
+		[]string{},
 	)
 
-	InternalRequestAttemptDurationSeconds = prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name:    "internal_request_attempt_duration_seconds",
-			Help:    "Time from the moment the InternalRequest starts being processed until it completes",
-			Buckets: []float64{10, 20, 40, 60, 150, 300, 450, 900, 1800, 3600},
-		},
-		[]string{"request", "namespace", "reason", "succeeded"},
+	InternalRequestDurationSeconds = prometheus.NewHistogramVec(
+		internalRequestDurationSecondsOpts,
+		internalRequestDurationSecondsLabels,
 	)
+	internalRequestDurationSecondsLabels = []string{
+		"namespace",
+		"reason",
+		"request",
+	}
+	internalRequestDurationSecondsOpts = prometheus.HistogramOpts{
+		Name:    "internal_request_duration_seconds",
+		Help:    "Time from the moment the InternalRequest starts being processed until it completes",
+		Buckets: []float64{10, 20, 40, 60, 150, 300, 450, 900, 1800, 3600},
+	}
 
-	InternalRequestAttemptTotal = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "internal_request_attempt_total",
-			Help: "Total number of InternalRequests processed by the operator",
-		},
-		[]string{"request", "namespace", "reason", "succeeded"},
+	InternalRequestTotal = prometheus.NewCounterVec(
+		internalRequestTotalOpts,
+		internalRequestTotalLabels,
 	)
+	internalRequestTotalLabels = []string{
+		"namespace",
+		"reason",
+		"request",
+	}
+	internalRequestTotalOpts = prometheus.CounterOpts{
+		Name: "internal_request_total",
+		Help: "Total number of InternalRequests processed by the operator",
+	}
 )
 
-// RegisterCompletedInternalRequest decrements the 'internal_request_attempt_concurrent_total' metric, increments `internal_request_attempt_total`
-// and registers a new observation for 'internal_request_attempt_duration_seconds' with the elapsed time from the moment the
-// InternalRequest attempt started (InternalRequest marked as 'Running').
-func RegisterCompletedInternalRequest(request, namespace, reason string, startTime, completionTime *metav1.Time, succeeded bool) {
+// RegisterCompletedInternalRequest registers an InternalRequest execution as complete, adding a new
+// observation for the InternalRequest duration and decreasing the number of concurrent executions.
+// If either the startTime or the completionTime parameters are nil, no action will be taken.
+func RegisterCompletedInternalRequest(startTime, completionTime *metav1.Time, namespace, reason, request string) {
+	if startTime == nil || completionTime == nil {
+		return
+	}
+
 	labels := prometheus.Labels{
-		"request":   request,
 		"namespace": namespace,
 		"reason":    reason,
-		"succeeded": strconv.FormatBool(succeeded),
+		"request":   request,
 	}
-	InternalRequestAttemptConcurrentTotal.Dec()
-	InternalRequestAttemptDurationSeconds.With(labels).Observe(completionTime.Sub(startTime.Time).Seconds())
-	InternalRequestAttemptTotal.With(labels).Inc()
+	InternalRequestConcurrentTotal.WithLabelValues().Dec()
+	InternalRequestDurationSeconds.With(labels).Observe(completionTime.Sub(startTime.Time).Seconds())
+	InternalRequestTotal.With(labels).Inc()
 }
 
-// RegisterNewInternalRequest increments the number of the 'internal_request_attempt_concurrent_total' metric which represents the number of concurrent running InternalRequests.
-func RegisterNewInternalRequest(creationTime metav1.Time, startTime *metav1.Time) {
-	InternalRequestAttemptConcurrentTotal.Inc()
+// RegisterNewInternalRequest register a new InternalRequest, increasing the number of concurrent requests.
+func RegisterNewInternalRequest() {
+	InternalRequestConcurrentTotal.WithLabelValues().Inc()
 }
 
 func init() {
 	metrics.Registry.MustRegister(
-		InternalRequestAttemptConcurrentTotal,
-		InternalRequestAttemptDurationSeconds,
-		InternalRequestAttemptTotal,
+		InternalRequestConcurrentTotal,
+		InternalRequestDurationSeconds,
+		InternalRequestTotal,
 	)
 }
