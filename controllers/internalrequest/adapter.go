@@ -35,11 +35,11 @@ import (
 // adapter holds the objects needed to reconcile an InternalRequest.
 type adapter struct {
 	client                  client.Client
-	internalServicesConfig  *v1alpha1.InternalServicesConfig
 	ctx                     context.Context
 	internalClient          client.Client
 	internalRequest         *v1alpha1.InternalRequest
 	internalRequestPipeline *v1beta1.Pipeline
+	internalServicesConfig  *v1alpha1.InternalServicesConfig
 	loader                  loader.ObjectLoader
 	logger                  *logr.Logger
 }
@@ -49,8 +49,8 @@ func newAdapter(ctx context.Context, client, internalClient client.Client, inter
 	return &adapter{
 		client:          client,
 		ctx:             ctx,
-		internalRequest: internalRequest,
 		internalClient:  internalClient,
+		internalRequest: internalRequest,
 		loader:          loader,
 		logger:          logger,
 	}
