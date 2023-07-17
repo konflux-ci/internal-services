@@ -26,7 +26,7 @@ var _ = Describe("Loader", Ordered, func() {
 		loader = NewLoader()
 	})
 
-	Context("When calling GetInternalRequest", func() {
+	When("GetInternalRequest is called", func() {
 		It("returns the requested InternalRequest", func() {
 			returnedObject, err := loader.GetInternalRequest(ctx, k8sClient, internalRequest.Name, internalRequest.Namespace)
 			Expect(err).NotTo(HaveOccurred())
@@ -35,7 +35,7 @@ var _ = Describe("Loader", Ordered, func() {
 		})
 	})
 
-	Context("When calling GetInternalRequestPipeline", func() {
+	When("GetInternalRequestPipeline is called", func() {
 		It("returns the requested Pipeline", func() {
 			returnedObject, err := loader.GetInternalRequestPipeline(ctx, k8sClient, pipeline.Name, pipeline.Namespace)
 			Expect(err).NotTo(HaveOccurred())
@@ -44,7 +44,7 @@ var _ = Describe("Loader", Ordered, func() {
 		})
 	})
 
-	Context("When calling GetInternalRequestPipelineRun", func() {
+	When("GetInternalRequestPipelineRun is called", func() {
 		It("returns a PipelineRun if the labels match with the internal request data", func() {
 			returnedObject, err := loader.GetInternalRequestPipelineRun(ctx, k8sClient, internalRequest)
 			Expect(err).NotTo(HaveOccurred())
@@ -62,7 +62,7 @@ var _ = Describe("Loader", Ordered, func() {
 		})
 	})
 
-	Context("When calling GetInternalServicesConfig", func() {
+	When("GetInternalServicesConfig is called", func() {
 		It("returns the requested InternalServicesConfig", func() {
 			returnedObject, err := loader.GetInternalServicesConfig(ctx, k8sClient, internalServicesConfig.Name, internalServicesConfig.Namespace)
 			Expect(err).NotTo(HaveOccurred())

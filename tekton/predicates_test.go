@@ -30,7 +30,7 @@ import (
 
 var _ = Describe("Predicates", func() {
 
-	Context("when testing InternalRequestPipelineRunSucceededPredicate predicate", func() {
+	When("testing InternalRequestPipelineRunSucceededPredicate predicate", func() {
 		instance := InternalRequestPipelineRunSucceededPredicate()
 
 		pipelineRun := &tektonv1beta1.PipelineRun{

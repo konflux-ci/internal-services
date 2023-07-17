@@ -39,7 +39,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		createResources()
 	})
 
-	Context("When calling NewInternalRequestPipelineRun", func() {
+	When("NewInternalRequestPipelineRun is called", func() {
 		It("should return a PipelineRun named after the InternalRequest", func() {
 			newInternalRequestPipelineRun := NewInternalRequestPipelineRun(internalServicesConfig)
 			generatedName := strings.ToLower(reflect.TypeOf(v1alpha1.InternalRequest{}).Name()) + "-"
@@ -60,7 +60,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		})
 	})
 
-	Context("When calling AsPipelineRun", func() {
+	When("AsPipelineRun is called", func() {
 		It("should return a PipelineRun representing the InternalRequest PipelineRun", func() {
 			newInternalRequestPipelineRun := NewInternalRequestPipelineRun(internalServicesConfig)
 			pipelineRun := newInternalRequestPipelineRun.AsPipelineRun()
@@ -72,7 +72,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		})
 	})
 
-	Context("When calling WithInternalRequest", func() {
+	When("WithInternalRequest is called", func() {
 		It("should append to the PipelineRun the parameters specified in the InternalRequest", func() {
 			newInternalRequestPipelineRun := NewInternalRequestPipelineRun(internalServicesConfig)
 			newInternalRequestPipelineRun.WithInternalRequest(internalRequest)
@@ -92,7 +92,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		})
 	})
 
-	Context("When calling WithOwner", func() {
+	When("WithOwner is called", func() {
 		It("should add ownership annotations", func() {
 			newInternalRequestPipelineRun := NewInternalRequestPipelineRun(internalServicesConfig)
 			newInternalRequestPipelineRun.WithOwner(internalRequest)
@@ -105,7 +105,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		})
 	})
 
-	Context("When calling WithPipeline", func() {
+	When("WithPipeline is called", func() {
 		It("should reference the Pipeline passed as an argument", func() {
 			newInternalRequestPipelineRun := NewInternalRequestPipelineRun(internalServicesConfig)
 			newInternalRequestPipelineRun.WithPipeline(pipeline, internalServicesConfig)

@@ -57,7 +57,7 @@ var _ = Describe("Metrics InternalRequest", Ordered, func() {
 		strategy                     = "nostrategy"
 	)
 
-	Context("When RegisterCompletedInternalRequest is called", func() {
+	When("RegisterCompletedInternalRequest is called", func() {
 		BeforeAll(func() {
 			InternalRequestAttemptDurationSeconds = prometheus.NewHistogramVec(
 				prometheus.HistogramOpts{

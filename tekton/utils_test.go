@@ -28,7 +28,7 @@ import (
 
 var _ = Describe("Utils", func() {
 
-	Context("when calling GetResultsFromPipelineRun", func() {
+	When("GetResultsFromPipelineRun is called", func() {
 		pipelineRun := &tektonv1beta1.PipelineRun{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "pipeline-run",
@@ -64,7 +64,7 @@ var _ = Describe("Utils", func() {
 		})
 	})
 
-	Context("when calling isInternalRequestsPipelineRun", func() {
+	When("isInternalRequestsPipelineRun is called", func() {
 		It("returns true if the PipelineRun is owned by an InternalRequest object", func() {
 			pipelineRun := &tektonv1beta1.PipelineRun{
 				ObjectMeta: metav1.ObjectMeta{
@@ -105,7 +105,7 @@ var _ = Describe("Utils", func() {
 		})
 	})
 
-	Context("when calling hasPipelineSucceeded", func() {
+	When("hasPipelineSucceeded is called", func() {
 		It("returns false if any of the objects is not a PipelineRun", func() {
 			Expect(hasPipelineSucceeded(&v1.Pod{}, &v1.Pod{})).To(BeFalse())
 			Expect(hasPipelineSucceeded(&tektonv1beta1.PipelineRun{}, &v1.Pod{})).To(BeFalse())

@@ -53,13 +53,13 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		createResources()
 	})
 
-	Context("When calling newAdapter", func() {
+	When("newAdapter is called", func() {
 		It("creates a new InternalRequest adapter", func() {
 			Expect(reflect.TypeOf(newAdapter(ctx, k8sClient, k8sClient, nil, nil, ctrl.Log))).To(Equal(reflect.TypeOf(&adapter{})))
 		})
 	})
 
-	Context("When calling EnsureConfigIsLoaded", func() {
+	When("EnsureConfigIsLoaded is called", func() {
 		var adapter *adapter
 
 		AfterEach(func() {
@@ -92,7 +92,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		})
 	})
 
-	Context("When calling EnsurePipelineExists", func() {
+	When("EnsurePipelineExists is called", func() {
 		var adapter *adapter
 
 		AfterEach(func() {
@@ -127,7 +127,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		})
 	})
 
-	Context("When calling EnsurePipelineRunIsCreated", func() {
+	When("EnsurePipelineRunIsCreated is called", func() {
 		var adapter *adapter
 
 		AfterEach(func() {
@@ -155,7 +155,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		})
 	})
 
-	Context("When calling EnsurePipelineRunIsDeleted", func() {
+	When("EnsurePipelineRunIsDeleted is called", func() {
 		var adapter *adapter
 
 		AfterEach(func() {
@@ -213,7 +213,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		})
 	})
 
-	Context("When calling EnsureRequestIsAllowed", func() {
+	When("EnsureRequestIsAllowed is called", func() {
 		var adapter *adapter
 
 		AfterEach(func() {
@@ -265,7 +265,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		})
 	})
 
-	Context("When calling EnsureRequestINotCompleted", func() {
+	When("EnsureRequestINotCompleted is called", func() {
 		var adapter *adapter
 
 		AfterEach(func() {
@@ -291,7 +291,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		})
 	})
 
-	Context("When calling EnsureStatusIsTracked", func() {
+	When("EnsureStatusIsTracked is called", func() {
 		var adapter *adapter
 
 		AfterEach(func() {
@@ -311,7 +311,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		})
 	})
 
-	Context("When calling createInternalRequestPipelineRun", func() {
+	When("createInternalRequestPipelineRun is called", func() {
 		var adapter *adapter
 
 		AfterEach(func() {
@@ -350,7 +350,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		})
 	})
 
-	Context("When calling getDefaultInternalServicesConfig", func() {
+	When("getDefaultInternalServicesConfig is called", func() {
 		var adapter *adapter
 
 		AfterEach(func() {
@@ -369,7 +369,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		})
 	})
 
-	Context("When calling registerInternalRequestStatus", func() {
+	When("registerInternalRequestStatus is called", func() {
 		var adapter *adapter
 
 		AfterEach(func() {
@@ -391,7 +391,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		})
 	})
 
-	Context("When calling registerInternalRequestPipelineRunStatus", func() {
+	When("registerInternalRequestPipelineRunStatus is called", func() {
 		var adapter *adapter
 
 		AfterEach(func() {

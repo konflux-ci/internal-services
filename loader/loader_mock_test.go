@@ -17,7 +17,7 @@ var _ = Describe("Loader Mock", Ordered, func() {
 		loader = NewMockLoader()
 	})
 
-	Context("When calling GetInternalRequest", func() {
+	When("GetInternalRequest is called", func() {
 		It("returns the resource and error from the context", func() {
 			internalRequest := &v1alpha1.InternalRequest{}
 			mockContext := toolkit.GetMockedContext(ctx, []toolkit.MockData{
@@ -32,7 +32,7 @@ var _ = Describe("Loader Mock", Ordered, func() {
 		})
 	})
 
-	Context("When calling GetInternalRequestPipeline", func() {
+	When("GetInternalRequestPipeline is called", func() {
 		It("returns the resource and error from the context", func() {
 			pipeline := &tektonv1beta1.Pipeline{}
 			mockContext := toolkit.GetMockedContext(ctx, []toolkit.MockData{
@@ -47,7 +47,7 @@ var _ = Describe("Loader Mock", Ordered, func() {
 		})
 	})
 
-	Context("When calling GetInternalRequestPipelineRun", func() {
+	When("GetInternalRequestPipelineRun is called", func() {
 		It("returns the resource and error from the context", func() {
 			pipelineRun := &tektonv1beta1.PipelineRun{}
 			mockContext := toolkit.GetMockedContext(ctx, []toolkit.MockData{
@@ -62,7 +62,7 @@ var _ = Describe("Loader Mock", Ordered, func() {
 		})
 	})
 
-	Context("When calling GetInternalServicesConfig", func() {
+	When("GetInternalServicesConfig is called", func() {
 		It("returns the resource and error from the context", func() {
 			internalServicesConfig := &v1alpha1.InternalServicesConfig{}
 			mockContext := toolkit.GetMockedContext(ctx, []toolkit.MockData{
