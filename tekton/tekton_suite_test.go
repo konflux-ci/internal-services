@@ -18,7 +18,7 @@ package tekton
 
 import (
 	"context"
-	goodies "github.com/redhat-appstudio/operator-goodies/test"
+	"github.com/redhat-appstudio/operator-toolkit/test"
 	"go/build"
 	"path/filepath"
 	"testing"
@@ -64,7 +64,7 @@ var _ = BeforeSuite(func() {
 			filepath.Join("..", "config", "crd", "bases"),
 			filepath.Join(
 				build.Default.GOPATH,
-				"pkg", "mod", goodies.GetRelativeDependencyPath("tektoncd/pipeline"), "config",
+				"pkg", "mod", test.GetRelativeDependencyPath("tektoncd/pipeline"), "config",
 			),
 		},
 		ErrorIfCRDPathMissing: true,

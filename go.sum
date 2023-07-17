@@ -294,8 +294,6 @@ github.com/prometheus/procfs v0.8.0/go.mod h1:z7EfXMXOkbkqb9IINtpCn86r/to3BnA0ua
 github.com/prometheus/statsd_exporter v0.22.7/go.mod h1:N/TevpjkIh9ccs6nuzY3jQn9dFqnUakOjnEuMPJJJnI=
 github.com/prometheus/statsd_exporter v0.22.8 h1:Qo2D9ZzaQG+id9i5NYNGmbf1aa/KxKbB9aKfMS+Yib0=
 github.com/prometheus/statsd_exporter v0.22.8/go.mod h1:/DzwbTEaFTE0Ojz5PqcSk6+PFHOPWGxdXVr6yC8eFOM=
-github.com/redhat-appstudio/operator-goodies v0.0.0-20230113090719-a8a43f600367 h1:u717UfVel8LRXaGpeyPjF6yerEHIzmWoHltXOUIRZrg=
-github.com/redhat-appstudio/operator-goodies v0.0.0-20230113090719-a8a43f600367/go.mod h1:sfJSn4B9LcaWhIxnRXWs2olpJNdLZ+Nnb7hTSj98Fv8=
 github.com/redhat-appstudio/operator-toolkit v0.0.0-20230705141436-de654b7a7aed h1:4RQmIIyZPm7dZuwtPUvbTLQCNIkUR13zLIVlUE9nunA=
 github.com/redhat-appstudio/operator-toolkit v0.0.0-20230705141436-de654b7a7aed/go.mod h1:6lVK58G/zkoxMoHAmYxzF6La8rMmCeZwOQk6i0dpYZo=
 github.com/rogpeppe/fastuuid v1.2.0/go.mod h1:jVj6XXZzXRy/MSR5jhDC/2q6DgLz+nrA6LYCDYWNEvQ=

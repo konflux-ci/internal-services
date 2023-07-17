@@ -17,27 +17,10 @@ limitations under the License.
 package controllers
 
 import (
-	"github.com/go-logr/logr"
 	"github.com/redhat-appstudio/internal-services/controllers/internalrequest"
-	"sigs.k8s.io/controller-runtime/pkg/cluster"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"github.com/redhat-appstudio/operator-toolkit/controller"
 )
 
-// setupFunctions is a list of register functions to be invoked so all controllers are added to the Manager
-var setupFunctions = []func(manager.Manager, cluster.Cluster, *logr.Logger) error{
-	internalrequest.SetupController,
-}
-
-// SetupControllers invoke all SetupController functions defined in setupFunctions, setting all controllers up and
-// adding them to the Manager.
-func SetupControllers(manager manager.Manager, remoteCluster cluster.Cluster) error {
-	log := logf.Log.WithName("controllers")
-
-	for _, function := range setupFunctions {
-		if err := function(manager, remoteCluster, &log); err != nil {
-			return err
-		}
-	}
-	return nil
+var EnabledControllers = []controller.Controller{
+	&internalrequest.Reconciler{},
 }

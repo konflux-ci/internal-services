@@ -18,6 +18,7 @@ package main
 
 import (
 	"flag"
+	"github.com/redhat-appstudio/operator-toolkit/controller"
 	"go.uber.org/zap/zapcore"
 	"os"
 
@@ -142,7 +143,7 @@ func getRemoteClusterClientConfig(configFile string) (*rest.Config, error) {
 
 // setupControllers setups all the operator controllers.
 func setupControllers(mgr manager.Manager, remoteCluster cluster.Cluster) {
-	err := controllers.SetupControllers(mgr, remoteCluster)
+	err := controller.SetupControllers(mgr, remoteCluster, controllers.EnabledControllers...)
 	if err != nil {
 		setupLog.Error(err, "unable to setup controllers")
 		os.Exit(1)

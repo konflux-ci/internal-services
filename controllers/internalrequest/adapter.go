@@ -23,7 +23,7 @@ import (
 	"github.com/redhat-appstudio/internal-services/api/v1alpha1"
 	"github.com/redhat-appstudio/internal-services/loader"
 	"github.com/redhat-appstudio/internal-services/tekton"
-	"github.com/redhat-appstudio/operator-goodies/reconciler"
+	"github.com/redhat-appstudio/operator-toolkit/controller"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -60,7 +60,7 @@ func NewAdapter(ctx context.Context, client, internalClient client.Client, inter
 // a new InternalServicesConfig resource will be generated and attached to the adapter.
 //
 // Note: This operation sets values in the adapter to be used by other operations, so it should be always enabled.
-func (a *Adapter) EnsureConfigIsLoaded() (reconciler.OperationResult, error) {
+func (a *Adapter) EnsureConfigIsLoaded() (controller.OperationResult, error) {
 	namespace := os.Getenv("SERVICE_NAMESPACE")
 	if namespace == "" {
 		namespace = "default"
@@ -69,14 +69,14 @@ func (a *Adapter) EnsureConfigIsLoaded() (reconciler.OperationResult, error) {
 	var err error
 	a.internalServicesConfig, err = a.loader.GetInternalServicesConfig(a.ctx, a.internalClient, v1alpha1.InternalServicesConfigResourceName, namespace)
 	if err != nil && !errors.IsNotFound(err) {
-		return reconciler.RequeueWithError(err)
+		return controller.RequeueWithError(err)
 	}
 
 	if err != nil {
 		a.internalServicesConfig = a.getDefaultInternalServicesConfig(namespace)
 	}
 
-	return reconciler.ContinueProcessing()
+	return controller.ContinueProcessing()
 }
 
 // EnsurePipelineExists is an operation that will ensure the Pipeline referenced by the InternalRequest exists and add it
@@ -84,7 +84,7 @@ func (a *Adapter) EnsureConfigIsLoaded() (reconciler.OperationResult, error) {
 // marked as failed.
 //
 // Note: This operation sets values in the adapter to be used by other operations, so it should be always enabled.
-func (a *Adapter) EnsurePipelineExists() (reconciler.OperationResult, error) {
+func (a *Adapter) EnsurePipelineExists() (controller.OperationResult, error) {
 	var err error
 	a.internalRequestPipeline, err = a.loader.GetInternalRequestPipeline(a.ctx, a.internalClient,
 		a.internalRequest.Spec.Request, a.internalServicesConfig.Namespace)
@@ -92,65 +92,65 @@ func (a *Adapter) EnsurePipelineExists() (reconciler.OperationResult, error) {
 	if err != nil {
 		patch := client.MergeFrom(a.internalRequest.DeepCopy())
 		a.internalRequest.MarkFailed(fmt.Sprintf("No endpoint to handle '%s' requests", a.internalRequest.Spec.Request))
-		return reconciler.RequeueOnErrorOrStop(a.client.Status().Patch(a.ctx, a.internalRequest, patch))
+		return controller.RequeueOnErrorOrStop(a.client.Status().Patch(a.ctx, a.internalRequest, patch))
 	}
 
-	return reconciler.ContinueProcessing()
+	return controller.ContinueProcessing()
 }
 
 // EnsurePipelineRunIsCreated is an operation that will ensure that the InternalRequest is handled by creating a new
 // PipelineRun for the Pipeline referenced in the Request field.
-func (a *Adapter) EnsurePipelineRunIsCreated() (reconciler.OperationResult, error) {
+func (a *Adapter) EnsurePipelineRunIsCreated() (controller.OperationResult, error) {
 	pipelineRun, err := a.loader.GetInternalRequestPipelineRun(a.ctx, a.internalClient, a.internalRequest)
 	if err != nil && !errors.IsNotFound(err) {
-		return reconciler.RequeueWithError(err)
+		return controller.RequeueWithError(err)
 	}
 
 	if pipelineRun == nil || !a.internalRequest.IsRunning() {
 		if pipelineRun == nil {
 			pipelineRun, err = a.createInternalRequestPipelineRun()
 			if err != nil {
-				return reconciler.RequeueWithError(err)
+				return controller.RequeueWithError(err)
 			}
 
 			a.logger.Info("Created PipelineRun to handle request",
 				"PipelineRun.Name", pipelineRun.Name, "PipelineRun.Namespace", pipelineRun.Namespace)
 		}
 
-		return reconciler.RequeueOnErrorOrContinue(a.registerInternalRequestStatus(pipelineRun))
+		return controller.RequeueOnErrorOrContinue(a.registerInternalRequestStatus(pipelineRun))
 	}
 
-	return reconciler.ContinueProcessing()
+	return controller.ContinueProcessing()
 }
 
 // EnsurePipelineRunIsDeleted is an operation that will ensure that the PipelineRun created to handle the InternalRequest
 // is deleted once it finishes.
-func (a *Adapter) EnsurePipelineRunIsDeleted() (reconciler.OperationResult, error) {
+func (a *Adapter) EnsurePipelineRunIsDeleted() (controller.OperationResult, error) {
 	if !a.internalRequest.HasCompleted() {
-		return reconciler.ContinueProcessing()
+		return controller.ContinueProcessing()
 	}
 
 	if a.internalServicesConfig.Spec.Debug {
 		a.logger.Info("Running in debug mode. Skipping PipelineRun deletion")
 
-		return reconciler.ContinueProcessing()
+		return controller.ContinueProcessing()
 	}
 
 	pipelineRun, err := a.loader.GetInternalRequestPipelineRun(a.ctx, a.internalClient, a.internalRequest)
 	if err != nil {
-		return reconciler.RequeueWithError(err)
+		return controller.RequeueWithError(err)
 	}
 
-	return reconciler.RequeueOnErrorOrContinue(a.internalClient.Delete(a.ctx, pipelineRun))
+	return controller.RequeueOnErrorOrContinue(a.internalClient.Delete(a.ctx, pipelineRun))
 }
 
 // EnsureRequestIsAllowed is an operation that will ensure that the request is coming from a namespace allowed
 // to execute InternalRequests. If the InternalServicesConfig spec.allowList is empty, any request will be allowed regardless of the
 // remote namespace.
-func (a *Adapter) EnsureRequestIsAllowed() (reconciler.OperationResult, error) {
+func (a *Adapter) EnsureRequestIsAllowed() (controller.OperationResult, error) {
 	for _, namespace := range a.internalServicesConfig.Spec.AllowList {
 		if namespace == a.internalRequest.Namespace {
-			return reconciler.ContinueProcessing()
+			return controller.ContinueProcessing()
 		}
 	}
 
@@ -158,31 +158,31 @@ func (a *Adapter) EnsureRequestIsAllowed() (reconciler.OperationResult, error) {
 	a.internalRequest.MarkRejected(
 		fmt.Sprintf("the internal request namespace (%s) is not in the allow list", a.internalRequest.Namespace),
 	)
-	return reconciler.RequeueOnErrorOrStop(a.client.Status().Patch(a.ctx, a.internalRequest, patch))
+	return controller.RequeueOnErrorOrStop(a.client.Status().Patch(a.ctx, a.internalRequest, patch))
 }
 
 // EnsureRequestINotCompleted is an operation that will stop processing a request if it was completed already.
-func (a *Adapter) EnsureRequestINotCompleted() (reconciler.OperationResult, error) {
+func (a *Adapter) EnsureRequestINotCompleted() (controller.OperationResult, error) {
 	if a.internalRequest.HasCompleted() {
-		return reconciler.StopProcessing()
+		return controller.StopProcessing()
 	}
 
-	return reconciler.ContinueProcessing()
+	return controller.ContinueProcessing()
 }
 
 // EnsureStatusIsTracked is an operation that will ensure that the InternalRequest PipelineRun status is tracked
 // in the InternalRequest being processed.
-func (a *Adapter) EnsureStatusIsTracked() (reconciler.OperationResult, error) {
+func (a *Adapter) EnsureStatusIsTracked() (controller.OperationResult, error) {
 	pipelineRun, err := a.loader.GetInternalRequestPipelineRun(a.ctx, a.internalClient, a.internalRequest)
 	if err != nil && !errors.IsNotFound(err) {
-		return reconciler.RequeueWithError(err)
+		return controller.RequeueWithError(err)
 	}
 
 	if pipelineRun != nil {
-		return reconciler.RequeueOnErrorOrContinue(a.registerInternalRequestPipelineRunStatus(pipelineRun))
+		return controller.RequeueOnErrorOrContinue(a.registerInternalRequestPipelineRunStatus(pipelineRun))
 	}
 
-	return reconciler.ContinueProcessing()
+	return controller.ContinueProcessing()
 }
 
 // createInternalRequestPipelineRun creates and returns a new InternalRequest PipelineRun. The new PipelineRun will

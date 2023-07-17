@@ -16,10 +16,10 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.conditions[?(@.type=="SucceededReason")].status
+    - jsonPath: .status.conditions[?(@.type=="Succeeded")].status
       name: Succeeded
       type: string
-    - jsonPath: .status.conditions[?(@.type=="SucceededReason")].reason
+    - jsonPath: .status.conditions[?(@.type=="Succeeded")].reason
       name: Reason
       type: string
     name: v1alpha1
