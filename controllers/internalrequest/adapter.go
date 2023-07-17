@@ -41,11 +41,11 @@ type adapter struct {
 	internalRequest         *v1alpha1.InternalRequest
 	internalRequestPipeline *v1beta1.Pipeline
 	loader                  loader.ObjectLoader
-	logger                  logr.Logger
+	logger                  *logr.Logger
 }
 
 // newAdapter creates and returns an adapter instance.
-func newAdapter(ctx context.Context, client, internalClient client.Client, internalRequest *v1alpha1.InternalRequest, loader loader.ObjectLoader, logger logr.Logger) *adapter {
+func newAdapter(ctx context.Context, client, internalClient client.Client, internalRequest *v1alpha1.InternalRequest, loader loader.ObjectLoader, logger *logr.Logger) *adapter {
 	return &adapter{
 		client:          client,
 		ctx:             ctx,

@@ -67,7 +67,7 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	adapter := newAdapter(ctx, c.client, c.internalClient, internalRequest, loader.NewLoader(), logger)
+	adapter := newAdapter(ctx, c.client, c.internalClient, internalRequest, loader.NewLoader(), &logger)
 
 	return controller.ReconcileHandler([]controller.Operation{
 		adapter.EnsureRequestINotCompleted,

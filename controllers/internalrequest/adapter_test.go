@@ -55,7 +55,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 
 	When("newAdapter is called", func() {
 		It("creates a new InternalRequest adapter", func() {
-			Expect(reflect.TypeOf(newAdapter(ctx, k8sClient, k8sClient, nil, nil, ctrl.Log))).To(Equal(reflect.TypeOf(&adapter{})))
+			Expect(reflect.TypeOf(newAdapter(ctx, k8sClient, k8sClient, nil, nil, &ctrl.Log))).To(Equal(reflect.TypeOf(&adapter{})))
 		})
 	})
 
@@ -477,7 +477,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		// Set a proper Kind
 		internalRequest.Kind = "InternalRequest"
 
-		adapter := newAdapter(ctx, k8sClient, k8sClient, internalRequest, loader.NewMockLoader(), ctrl.Log)
+		adapter := newAdapter(ctx, k8sClient, k8sClient, internalRequest, loader.NewMockLoader(), &ctrl.Log)
 		adapter.internalServicesConfig = internalServicesConfig
 
 		return adapter
