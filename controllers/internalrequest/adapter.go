@@ -32,8 +32,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// Adapter holds the objects needed to reconcile an InternalRequest.
-type Adapter struct {
+// adapter holds the objects needed to reconcile an InternalRequest.
+type adapter struct {
 	client                  client.Client
 	internalServicesConfig  *v1alpha1.InternalServicesConfig
 	ctx                     context.Context
@@ -44,9 +44,9 @@ type Adapter struct {
 	logger                  logr.Logger
 }
 
-// NewAdapter creates and returns an Adapter instance.
-func NewAdapter(ctx context.Context, client, internalClient client.Client, internalRequest *v1alpha1.InternalRequest, loader loader.ObjectLoader, logger logr.Logger) *Adapter {
-	return &Adapter{
+// newAdapter creates and returns an adapter instance.
+func newAdapter(ctx context.Context, client, internalClient client.Client, internalRequest *v1alpha1.InternalRequest, loader loader.ObjectLoader, logger logr.Logger) *adapter {
+	return &adapter{
 		client:          client,
 		ctx:             ctx,
 		internalRequest: internalRequest,
@@ -60,7 +60,7 @@ func NewAdapter(ctx context.Context, client, internalClient client.Client, inter
 // a new InternalServicesConfig resource will be generated and attached to the adapter.
 //
 // Note: This operation sets values in the adapter to be used by other operations, so it should be always enabled.
-func (a *Adapter) EnsureConfigIsLoaded() (controller.OperationResult, error) {
+func (a *adapter) EnsureConfigIsLoaded() (controller.OperationResult, error) {
 	namespace := os.Getenv("SERVICE_NAMESPACE")
 	if namespace == "" {
 		namespace = "default"
@@ -84,7 +84,7 @@ func (a *Adapter) EnsureConfigIsLoaded() (controller.OperationResult, error) {
 // marked as failed.
 //
 // Note: This operation sets values in the adapter to be used by other operations, so it should be always enabled.
-func (a *Adapter) EnsurePipelineExists() (controller.OperationResult, error) {
+func (a *adapter) EnsurePipelineExists() (controller.OperationResult, error) {
 	var err error
 	a.internalRequestPipeline, err = a.loader.GetInternalRequestPipeline(a.ctx, a.internalClient,
 		a.internalRequest.Spec.Request, a.internalServicesConfig.Namespace)
@@ -100,7 +100,7 @@ func (a *Adapter) EnsurePipelineExists() (controller.OperationResult, error) {
 
 // EnsurePipelineRunIsCreated is an operation that will ensure that the InternalRequest is handled by creating a new
 // PipelineRun for the Pipeline referenced in the Request field.
-func (a *Adapter) EnsurePipelineRunIsCreated() (controller.OperationResult, error) {
+func (a *adapter) EnsurePipelineRunIsCreated() (controller.OperationResult, error) {
 	pipelineRun, err := a.loader.GetInternalRequestPipelineRun(a.ctx, a.internalClient, a.internalRequest)
 	if err != nil && !errors.IsNotFound(err) {
 		return controller.RequeueWithError(err)
@@ -125,7 +125,7 @@ func (a *Adapter) EnsurePipelineRunIsCreated() (controller.OperationResult, erro
 
 // EnsurePipelineRunIsDeleted is an operation that will ensure that the PipelineRun created to handle the InternalRequest
 // is deleted once it finishes.
-func (a *Adapter) EnsurePipelineRunIsDeleted() (controller.OperationResult, error) {
+func (a *adapter) EnsurePipelineRunIsDeleted() (controller.OperationResult, error) {
 	if !a.internalRequest.HasCompleted() {
 		return controller.ContinueProcessing()
 	}
@@ -147,7 +147,7 @@ func (a *Adapter) EnsurePipelineRunIsDeleted() (controller.OperationResult, erro
 // EnsureRequestIsAllowed is an operation that will ensure that the request is coming from a namespace allowed
 // to execute InternalRequests. If the InternalServicesConfig spec.allowList is empty, any request will be allowed regardless of the
 // remote namespace.
-func (a *Adapter) EnsureRequestIsAllowed() (controller.OperationResult, error) {
+func (a *adapter) EnsureRequestIsAllowed() (controller.OperationResult, error) {
 	for _, namespace := range a.internalServicesConfig.Spec.AllowList {
 		if namespace == a.internalRequest.Namespace {
 			return controller.ContinueProcessing()
@@ -162,7 +162,7 @@ func (a *Adapter) EnsureRequestIsAllowed() (controller.OperationResult, error) {
 }
 
 // EnsureRequestINotCompleted is an operation that will stop processing a request if it was completed already.
-func (a *Adapter) EnsureRequestINotCompleted() (controller.OperationResult, error) {
+func (a *adapter) EnsureRequestINotCompleted() (controller.OperationResult, error) {
 	if a.internalRequest.HasCompleted() {
 		return controller.StopProcessing()
 	}
@@ -172,7 +172,7 @@ func (a *Adapter) EnsureRequestINotCompleted() (controller.OperationResult, erro
 
 // EnsureStatusIsTracked is an operation that will ensure that the InternalRequest PipelineRun status is tracked
 // in the InternalRequest being processed.
-func (a *Adapter) EnsureStatusIsTracked() (controller.OperationResult, error) {
+func (a *adapter) EnsureStatusIsTracked() (controller.OperationResult, error) {
 	pipelineRun, err := a.loader.GetInternalRequestPipelineRun(a.ctx, a.internalClient, a.internalRequest)
 	if err != nil && !errors.IsNotFound(err) {
 		return controller.RequeueWithError(err)
@@ -188,7 +188,7 @@ func (a *Adapter) EnsureStatusIsTracked() (controller.OperationResult, error) {
 // createInternalRequestPipelineRun creates and returns a new InternalRequest PipelineRun. The new PipelineRun will
 // include owner annotations, so it triggers InternalRequest reconciles whenever it changes. The Pipeline information
 // and its parameters will be extracted from the InternalRequest.
-func (a *Adapter) createInternalRequestPipelineRun() (*v1beta1.PipelineRun, error) {
+func (a *adapter) createInternalRequestPipelineRun() (*v1beta1.PipelineRun, error) {
 	pipelineRun := tekton.NewInternalRequestPipelineRun(a.internalServicesConfig).
 		WithInternalRequest(a.internalRequest).
 		WithOwner(a.internalRequest).
@@ -204,7 +204,7 @@ func (a *Adapter) createInternalRequestPipelineRun() (*v1beta1.PipelineRun, erro
 }
 
 // getDefaultInternalServicesConfig creates and returns a InternalServicesConfig resource in the given namespace with default values.
-func (a *Adapter) getDefaultInternalServicesConfig(namespace string) *v1alpha1.InternalServicesConfig {
+func (a *adapter) getDefaultInternalServicesConfig(namespace string) *v1alpha1.InternalServicesConfig {
 	return &v1alpha1.InternalServicesConfig{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      v1alpha1.InternalServicesConfigResourceName,
@@ -214,7 +214,7 @@ func (a *Adapter) getDefaultInternalServicesConfig(namespace string) *v1alpha1.I
 }
 
 // registerInternalRequestStatus sets the InternalRequest to Running.
-func (a *Adapter) registerInternalRequestStatus(pipelineRun *v1beta1.PipelineRun) error {
+func (a *adapter) registerInternalRequestStatus(pipelineRun *v1beta1.PipelineRun) error {
 	if pipelineRun == nil {
 		return nil
 	}
@@ -227,7 +227,7 @@ func (a *Adapter) registerInternalRequestStatus(pipelineRun *v1beta1.PipelineRun
 }
 
 // registerInternalRequestPipelineRunStatus keeps track of the PipelineRun status in the InternalRequest being processed.
-func (a *Adapter) registerInternalRequestPipelineRunStatus(pipelineRun *v1beta1.PipelineRun) error {
+func (a *adapter) registerInternalRequestPipelineRunStatus(pipelineRun *v1beta1.PipelineRun) error {
 	if pipelineRun == nil || !pipelineRun.IsDone() {
 		return nil
 	}

@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"github.com/redhat-appstudio/internal-services/loader"
 	toolkit "github.com/redhat-appstudio/operator-toolkit/loader"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"reflect"
 
@@ -36,30 +37,40 @@ import (
 
 var _ = Describe("PipelineRun", Ordered, func() {
 	var (
-		createResources func()
-		deleteResources func()
+		createInternalRequestAndAdapter func() *adapter
+		createResources                 func()
+		deleteResources                 func()
 
-		adapter  *Adapter
-		pipeline *tektonv1beta1.Pipeline
+		internalServicesConfig *v1alpha1.InternalServicesConfig
+		pipeline               *tektonv1beta1.Pipeline
 	)
 
-	Context("When calling NewAdapter", func() {
+	AfterAll(func() {
+		deleteResources()
+	})
+
+	BeforeAll(func() {
+		createResources()
+	})
+
+	Context("When calling newAdapter", func() {
 		It("creates a new InternalRequest adapter", func() {
-			Expect(reflect.TypeOf(NewAdapter(ctx, k8sClient, k8sClient, nil, nil, ctrl.Log))).To(Equal(reflect.TypeOf(&Adapter{})))
+			Expect(reflect.TypeOf(newAdapter(ctx, k8sClient, k8sClient, nil, nil, ctrl.Log))).To(Equal(reflect.TypeOf(&adapter{})))
 		})
 	})
 
 	Context("When calling EnsureConfigIsLoaded", func() {
+		var adapter *adapter
+
 		AfterEach(func() {
-			deleteResources()
+			_ = adapter.client.Delete(ctx, adapter.internalRequest)
 		})
 
 		BeforeEach(func() {
-			createResources()
+			adapter = createInternalRequestAndAdapter()
 		})
 
 		It("loads the InternalServicesConfig and assigns it to the adapter", func() {
-			adapter.internalServicesConfig = nil
 			result, err := adapter.EnsureConfigIsLoaded()
 			Expect(!result.CancelRequest && !result.RequeueRequest).To(BeTrue())
 			Expect(err).To(BeNil())
@@ -67,8 +78,12 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		})
 
 		It("creates and assigns a new InternalServicesConfig if none is found", func() {
-			Expect(adapter.client.Delete(ctx, adapter.internalServicesConfig)).To(Succeed())
-			adapter.internalServicesConfig = nil
+			adapter.ctx = toolkit.GetMockedContext(ctx, []toolkit.MockData{
+				{
+					ContextKey: loader.InternalServicesConfigContextKey,
+					Err:        errors.NewNotFound(schema.GroupResource{}, ""),
+				},
+			})
 
 			result, err := adapter.EnsureConfigIsLoaded()
 			Expect(!result.CancelRequest && !result.RequeueRequest).To(BeTrue())
@@ -78,12 +93,14 @@ var _ = Describe("PipelineRun", Ordered, func() {
 	})
 
 	Context("When calling EnsurePipelineExists", func() {
+		var adapter *adapter
+
 		AfterEach(func() {
-			deleteResources()
+			_ = adapter.client.Delete(ctx, adapter.internalRequest)
 		})
 
 		BeforeEach(func() {
-			createResources()
+			adapter = createInternalRequestAndAdapter()
 		})
 
 		It("should continue if the Pipeline exists", func() {
@@ -111,12 +128,14 @@ var _ = Describe("PipelineRun", Ordered, func() {
 	})
 
 	Context("When calling EnsurePipelineRunIsCreated", func() {
+		var adapter *adapter
+
 		AfterEach(func() {
-			deleteResources()
+			_ = adapter.client.Delete(ctx, adapter.internalRequest)
 		})
 
 		BeforeEach(func() {
-			createResources()
+			adapter = createInternalRequestAndAdapter()
 			adapter.internalRequestPipeline = pipeline
 		})
 
@@ -137,12 +156,14 @@ var _ = Describe("PipelineRun", Ordered, func() {
 	})
 
 	Context("When calling EnsurePipelineRunIsDeleted", func() {
+		var adapter *adapter
+
 		AfterEach(func() {
-			deleteResources()
+			_ = adapter.client.Delete(ctx, adapter.internalRequest)
 		})
 
 		BeforeEach(func() {
-			createResources()
+			adapter = createInternalRequestAndAdapter()
 		})
 
 		It("should continue if the InternalRequest has not completed", func() {
@@ -152,7 +173,12 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		})
 
 		It("should continue if the operator is set to run in debug mode", func() {
-			adapter.internalServicesConfig.Spec.Debug = true
+			adapter.internalServicesConfig = &v1alpha1.InternalServicesConfig{
+				Spec: v1alpha1.InternalServicesConfigSpec{
+					AllowList: []string{"default"},
+					Debug:     true,
+				},
+			}
 			result, err := adapter.EnsurePipelineRunIsDeleted()
 			Expect(!result.CancelRequest && !result.RequeueRequest).To(BeTrue())
 			Expect(err).To(BeNil())
@@ -188,12 +214,14 @@ var _ = Describe("PipelineRun", Ordered, func() {
 	})
 
 	Context("When calling EnsureRequestIsAllowed", func() {
+		var adapter *adapter
+
 		AfterEach(func() {
-			deleteResources()
+			_ = adapter.client.Delete(ctx, adapter.internalRequest)
 		})
 
 		BeforeEach(func() {
-			createResources()
+			adapter = createInternalRequestAndAdapter()
 		})
 
 		It("should deny any request when the spec.allowList is empty", func() {
@@ -206,28 +234,28 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		})
 
 		It("should allow any request from a namespace in the spec.allowList", func() {
-			// Delete the current internalServicesConfig as it won't be used
-			Expect(k8sClient.Delete(ctx, adapter.internalServicesConfig)).To(Succeed())
-
 			adapter.internalServicesConfig = &v1alpha1.InternalServicesConfig{
 				Spec: v1alpha1.InternalServicesConfigSpec{
 					AllowList: []string{"default"},
 				},
 			}
+
 			result, err := adapter.EnsureRequestIsAllowed()
 			Expect(!result.CancelRequest && !result.RequeueRequest).To(BeTrue())
 			Expect(err).To(BeNil())
 		})
 
 		It("should deny any request from a namespace not in the spec.allowList", func() {
-			// Delete the current internalServicesConfig as it won't be used
-			Expect(k8sClient.Delete(ctx, adapter.internalServicesConfig)).To(Succeed())
-
-			adapter.internalServicesConfig = &v1alpha1.InternalServicesConfig{
-				Spec: v1alpha1.InternalServicesConfigSpec{
-					AllowList: []string{"foo"},
+			adapter.ctx = toolkit.GetMockedContext(ctx, []toolkit.MockData{
+				{
+					ContextKey: loader.InternalServicesConfigContextKey,
+					Resource: &v1alpha1.InternalServicesConfig{
+						Spec: v1alpha1.InternalServicesConfigSpec{
+							AllowList: []string{"foo"},
+						},
+					},
 				},
-			}
+			})
 			result, err := adapter.EnsureRequestIsAllowed()
 			Expect(result.CancelRequest && !result.RequeueRequest).To(BeTrue())
 			Expect(err).To(BeNil())
@@ -238,12 +266,14 @@ var _ = Describe("PipelineRun", Ordered, func() {
 	})
 
 	Context("When calling EnsureRequestINotCompleted", func() {
+		var adapter *adapter
+
 		AfterEach(func() {
-			deleteResources()
+			_ = adapter.client.Delete(ctx, adapter.internalRequest)
 		})
 
 		BeforeEach(func() {
-			createResources()
+			adapter = createInternalRequestAndAdapter()
 		})
 
 		It("should stop processing when the InternalRequest is completed", func() {
@@ -262,12 +292,14 @@ var _ = Describe("PipelineRun", Ordered, func() {
 	})
 
 	Context("When calling EnsureStatusIsTracked", func() {
+		var adapter *adapter
+
 		AfterEach(func() {
-			deleteResources()
+			_ = adapter.client.Delete(ctx, adapter.internalRequest)
 		})
 
 		BeforeEach(func() {
-			createResources()
+			adapter = createInternalRequestAndAdapter()
 		})
 
 		It("should succeed when a PipelineRun exists", func() {
@@ -280,12 +312,14 @@ var _ = Describe("PipelineRun", Ordered, func() {
 	})
 
 	Context("When calling createInternalRequestPipelineRun", func() {
+		var adapter *adapter
+
 		AfterEach(func() {
-			deleteResources()
+			_ = adapter.client.Delete(ctx, adapter.internalRequest)
 		})
 
 		BeforeEach(func() {
-			createResources()
+			adapter = createInternalRequestAndAdapter()
 			adapter.internalRequestPipeline = pipeline
 		})
 
@@ -317,12 +351,14 @@ var _ = Describe("PipelineRun", Ordered, func() {
 	})
 
 	Context("When calling getDefaultInternalServicesConfig", func() {
+		var adapter *adapter
+
 		AfterEach(func() {
-			deleteResources()
+			_ = adapter.client.Delete(ctx, adapter.internalRequest)
 		})
 
 		BeforeEach(func() {
-			createResources()
+			adapter = createInternalRequestAndAdapter()
 		})
 
 		It("should return a InternalServicesConfig without Spec and with the right ObjectMeta", func() {
@@ -334,12 +370,14 @@ var _ = Describe("PipelineRun", Ordered, func() {
 	})
 
 	Context("When calling registerInternalRequestStatus", func() {
+		var adapter *adapter
+
 		AfterEach(func() {
-			deleteResources()
+			_ = adapter.client.Delete(ctx, adapter.internalRequest)
 		})
 
 		BeforeEach(func() {
-			createResources()
+			adapter = createInternalRequestAndAdapter()
 		})
 
 		It("should return nil if the PipelineRun is nil", func() {
@@ -354,12 +392,14 @@ var _ = Describe("PipelineRun", Ordered, func() {
 	})
 
 	Context("When calling registerInternalRequestPipelineRunStatus", func() {
+		var adapter *adapter
+
 		AfterEach(func() {
-			deleteResources()
+			_ = adapter.client.Delete(ctx, adapter.internalRequest)
 		})
 
 		BeforeEach(func() {
-			createResources()
+			adapter = createInternalRequestAndAdapter()
 			adapter.internalRequest.MarkRunning()
 		})
 
@@ -422,24 +462,29 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		})
 	})
 
-	createResources = func() {
+	createInternalRequestAndAdapter = func() *adapter {
 		internalRequest := &v1alpha1.InternalRequest{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "request",
 				Namespace: "default",
 			},
 			Spec: v1alpha1.InternalRequestSpec{
-				Request: "request",
+				Request: pipeline.Name,
 			},
 		}
 		Expect(k8sClient.Create(ctx, internalRequest)).To(Succeed())
 
 		// Set a proper Kind
-		internalRequest.TypeMeta = metav1.TypeMeta{
-			Kind: "InternalRequest",
-		}
+		internalRequest.Kind = "InternalRequest"
 
-		internalServicesConfig := &v1alpha1.InternalServicesConfig{
+		adapter := newAdapter(ctx, k8sClient, k8sClient, internalRequest, loader.NewMockLoader(), ctrl.Log)
+		adapter.internalServicesConfig = internalServicesConfig
+
+		return adapter
+	}
+
+	createResources = func() {
+		internalServicesConfig = &v1alpha1.InternalServicesConfig{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      v1alpha1.InternalServicesConfigResourceName,
 				Namespace: "default",
@@ -449,19 +494,15 @@ var _ = Describe("PipelineRun", Ordered, func() {
 
 		pipeline = &tektonv1beta1.Pipeline{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      internalRequest.Spec.Request,
+				Name:      "pipeline",
 				Namespace: "default",
 			},
 		}
 		Expect(k8sClient.Create(ctx, pipeline)).To(Succeed())
-
-		adapter = NewAdapter(ctx, k8sClient, k8sClient, internalRequest, loader.NewMockLoader(), ctrl.Log)
-		adapter.internalServicesConfig = internalServicesConfig
 	}
 
 	deleteResources = func() {
-		_ = k8sClient.Delete(ctx, adapter.internalServicesConfig)
-		Expect(k8sClient.Delete(ctx, adapter.internalRequest)).To(Succeed())
+		Expect(k8sClient.Delete(ctx, internalServicesConfig)).To(Succeed())
 		Expect(k8sClient.Delete(ctx, pipeline)).To(Succeed())
 		err := k8sClient.DeleteAllOf(ctx, &tektonv1beta1.PipelineRun{})
 		Expect(err == nil || errors.IsNotFound(err)).To(BeTrue())
