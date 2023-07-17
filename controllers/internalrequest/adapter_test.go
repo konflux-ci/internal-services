@@ -18,13 +18,15 @@ package internalrequest
 
 import (
 	"fmt"
+	"github.com/redhat-appstudio/internal-services/loader"
+	toolkit "github.com/redhat-appstudio/operator-toolkit/loader"
+
 	"reflect"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	libhandler "github.com/operator-framework/operator-lib/handler"
 	"github.com/redhat-appstudio/internal-services/api/v1alpha1"
-	"github.com/redhat-appstudio/internal-services/loader"
 	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -91,7 +93,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		})
 
 		It("should set a 'No endpoint to handle' if the Pipeline was not found", func() {
-			adapter.ctx = loader.GetMockedContext(ctx, []loader.MockData{
+			adapter.ctx = toolkit.GetMockedContext(ctx, []toolkit.MockData{
 				{
 					ContextKey: loader.InternalRequestPipelineContextKey,
 					Err:        fmt.Errorf("not found"),
@@ -157,7 +159,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		})
 
 		It("should requeue if it fails to load the InternalRequest PipelineRun", func() {
-			adapter.ctx = loader.GetMockedContext(ctx, []loader.MockData{
+			adapter.ctx = toolkit.GetMockedContext(ctx, []toolkit.MockData{
 				{
 					ContextKey: loader.InternalRequestPipelineRunContextKey,
 					Err:        fmt.Errorf("not found"),
