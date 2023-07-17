@@ -34,9 +34,9 @@ type inputHeader struct {
 	Help string
 }
 
-func TestMetricsRelease(t *testing.T) {
+func Test(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Metrics Release Test Suite")
+	RunSpecs(t, "Metrics Suite")
 }
 
 var (

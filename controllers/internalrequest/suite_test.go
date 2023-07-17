@@ -46,10 +46,10 @@ var (
 	testEnv   *envtest.Environment
 )
 
-func TestInternalRequestController(t *testing.T) {
+func Test(t *testing.T) {
 	RegisterFailHandler(Fail)
 
-	RunSpecs(t, "InternalRequest Suite")
+	RunSpecs(t, "InternalRequest Controller Suite")
 }
 
 var _ = BeforeSuite(func() {

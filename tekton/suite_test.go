@@ -47,10 +47,10 @@ var (
 	testEnv   *envtest.Environment
 )
 
-func TestTekton(t *testing.T) {
+func Test(t *testing.T) {
 	RegisterFailHandler(Fail)
 
-	RunSpecs(t, "PipelineRun Test Suite")
+	RunSpecs(t, "Tekton Suite")
 }
 
 var _ = BeforeSuite(func() {
