@@ -103,7 +103,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 			Expect(result.CancelRequest && !result.RequeueRequest).To(BeTrue())
 			Expect(err).To(BeNil())
 
-			condition := meta.FindStatusCondition(adapter.internalRequest.Status.Conditions, v1alpha1.InternalRequestSucceededConditionType)
+			condition := meta.FindStatusCondition(adapter.internalRequest.Status.Conditions, v1alpha1.SucceededConditionType.String())
 			Expect(condition.Message).To(Equal(fmt.Sprintf("No endpoint to handle '%s' requests", adapter.internalRequest.Spec.Request)))
 		})
 	})
@@ -130,7 +130,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		It("ensures the InternalRequest is marked as running", func() {
 			result, err := adapter.EnsurePipelineRunIsCreated()
 			Expect(!result.CancelRequest && err == nil).Should(BeTrue())
-			Expect(adapter.internalRequest.HasStarted()).To(BeTrue())
+			Expect(adapter.internalRequest.IsRunning()).To(BeTrue())
 		})
 	})
 
@@ -172,6 +172,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 
 		It("should delete the InternalRequest PipelineRun", func() {
 			adapter.internalRequestPipeline = pipeline
+			adapter.internalRequest.MarkRunning()
 			adapter.internalRequest.MarkSucceeded()
 
 			pipelineRun, err := adapter.createInternalRequestPipelineRun()
@@ -198,7 +199,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 			Expect(result.CancelRequest && !result.RequeueRequest).To(BeTrue())
 			Expect(err).To(BeNil())
 			Expect(adapter.internalRequest.Status.Conditions).To(HaveLen(1))
-			Expect(adapter.internalRequest.Status.Conditions[0].Reason).To(Equal(string(v1alpha1.InternalRequestRejected)))
+			Expect(adapter.internalRequest.Status.Conditions[0].Reason).To(Equal(string(v1alpha1.RejectedReason)))
 			Expect(adapter.internalRequest.Status.Conditions[0].Message).To(ContainSubstring("not in the allow list"))
 		})
 
@@ -229,7 +230,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 			Expect(result.CancelRequest && !result.RequeueRequest).To(BeTrue())
 			Expect(err).To(BeNil())
 			Expect(adapter.internalRequest.Status.Conditions).To(HaveLen(1))
-			Expect(adapter.internalRequest.Status.Conditions[0].Reason).To(Equal(string(v1alpha1.InternalRequestRejected)))
+			Expect(adapter.internalRequest.Status.Conditions[0].Reason).To(Equal(string(v1alpha1.RejectedReason)))
 			Expect(adapter.internalRequest.Status.Conditions[0].Message).To(ContainSubstring("not in the allow list"))
 		})
 	})
@@ -344,9 +345,9 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		})
 
 		It("should mark the InternalRequest as running", func() {
-			Expect(adapter.internalRequest.HasStarted()).To(BeFalse())
+			Expect(adapter.internalRequest.IsRunning()).To(BeFalse())
 			Expect(adapter.registerInternalRequestStatus(&tektonv1beta1.PipelineRun{})).To(BeNil())
-			Expect(adapter.internalRequest.HasStarted()).To(BeTrue())
+			Expect(adapter.internalRequest.IsRunning()).To(BeTrue())
 		})
 	})
 
@@ -357,6 +358,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 
 		BeforeEach(func() {
 			createResources()
+			adapter.internalRequest.MarkRunning()
 		})
 
 		It("should return nil if the PipelineRun is nil", func() {

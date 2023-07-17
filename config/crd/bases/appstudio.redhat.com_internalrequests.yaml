@@ -16,10 +16,10 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.conditions[?(@.type=="InternalRequestSucceeded")].status
+    - jsonPath: .status.conditions[?(@.type=="SucceededReason")].status
       name: Succeeded
       type: string
-    - jsonPath: .status.conditions[?(@.type=="InternalRequestSucceeded")].reason
+    - jsonPath: .status.conditions[?(@.type=="SucceededReason")].reason
       name: Reason
       type: string
     name: v1alpha1
