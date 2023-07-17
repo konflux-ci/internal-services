@@ -84,7 +84,8 @@ func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 // filters out status updates. It also watches for PipelineRuns created by this controller and owned by the
 // InternalRequests so the owner gets reconciled on PipelineRun changes.
 func (c *Controller) Register(mgr ctrl.Manager, log *logr.Logger, remoteCluster cluster.Cluster) error {
-	c.client = mgr.GetClient()
+	c.client = remoteCluster.GetClient()
+	c.internalClient = mgr.GetClient()
 	c.log = log.WithName("internalRequest")
 
 	return ctrl.NewControllerManagedBy(mgr).

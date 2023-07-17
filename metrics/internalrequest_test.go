@@ -29,6 +29,7 @@ import (
 )
 
 var _ = Describe("Metrics InternalRequest", Ordered, func() {
+
 	var (
 		initializeMetrics func()
 	)
@@ -106,4 +107,5 @@ var _ = Describe("Metrics InternalRequest", Ordered, func() {
 		InternalRequestConcurrentTotal.Reset()
 		InternalRequestDurationSeconds.Reset()
 	}
+
 })

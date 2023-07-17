@@ -25,11 +25,6 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-type inputHeader struct {
-	Name string
-	Help string
-}
-
 func Test(t *testing.T) {
 	RegisterFailHandler(Fail)
 

@@ -9,6 +9,7 @@ import (
 )
 
 var _ = Describe("Loader Mock", Ordered, func() {
+
 	var (
 		loader ObjectLoader
 	)

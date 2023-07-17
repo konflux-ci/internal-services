@@ -10,6 +10,7 @@ import (
 )
 
 var _ = Describe("Loader", Ordered, func() {
+
 	var (
 		loader          ObjectLoader
 		createResources func()
