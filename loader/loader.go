@@ -4,8 +4,8 @@ import (
 	"context"
 	"github.com/redhat-appstudio/internal-services/api/v1alpha1"
 	"github.com/redhat-appstudio/internal-services/tekton"
+	toolkit "github.com/redhat-appstudio/operator-toolkit/loader"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -22,27 +22,18 @@ func NewLoader() ObjectLoader {
 	return &loader{}
 }
 
-// getObject loads an object from the cluster. This is a generic function that requires the object to be passed as an
-// argument. The object is modified during the invocation.
-func getObject(name, namespace string, cli client.Client, ctx context.Context, object client.Object) error {
-	return cli.Get(ctx, types.NamespacedName{
-		Name:      name,
-		Namespace: namespace,
-	}, object)
-}
-
 // GetInternalRequest returns the InternalRequest with the given name and namespace. If the InternalRequest is not
 // found or the Get operation fails, an error will be returned.
 func (l *loader) GetInternalRequest(ctx context.Context, cli client.Client, name, namespace string) (*v1alpha1.InternalRequest, error) {
 	internalRequest := &v1alpha1.InternalRequest{}
-	return internalRequest, getObject(name, namespace, cli, ctx, internalRequest)
+	return internalRequest, toolkit.GetObject(name, namespace, cli, ctx, internalRequest)
 }
 
 // GetInternalRequestPipeline returns the Pipeline with the given name and namespace. If the Pipeline is not
 // found or the Get operation fails, an error will be returned.
 func (l *loader) GetInternalRequestPipeline(ctx context.Context, cli client.Client, name, namespace string) (*v1beta1.Pipeline, error) {
 	pipeline := &v1beta1.Pipeline{}
-	return pipeline, getObject(name, namespace, cli, ctx, pipeline)
+	return pipeline, toolkit.GetObject(name, namespace, cli, ctx, pipeline)
 }
 
 // GetInternalRequestPipelineRun returns the PipelineRun referenced by the given InternalRequest or nil if it's not
@@ -67,5 +58,5 @@ func (l *loader) GetInternalRequestPipelineRun(ctx context.Context, cli client.C
 // InternalServicesConfig is not found or the Get operation fails, an error will be returned.
 func (l *loader) GetInternalServicesConfig(ctx context.Context, cli client.Client, name, namespace string) (*v1alpha1.InternalServicesConfig, error) {
 	internalServicesConfig := &v1alpha1.InternalServicesConfig{}
-	return internalServicesConfig, getObject(name, namespace, cli, ctx, internalServicesConfig)
+	return internalServicesConfig, toolkit.GetObject(name, namespace, cli, ctx, internalServicesConfig)
 }

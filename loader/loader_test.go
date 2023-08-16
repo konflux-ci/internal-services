@@ -6,7 +6,6 @@ import (
 	"github.com/redhat-appstudio/internal-services/api/v1alpha1"
 	"github.com/redhat-appstudio/internal-services/tekton"
 	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -25,23 +24,6 @@ var _ = Describe("Loader", Ordered, func() {
 		createResources()
 
 		loader = NewLoader()
-	})
-
-	Context("When calling getObject", func() {
-		It("returns the requested resource if it exists", func() {
-			returnedObject := &v1alpha1.InternalRequest{}
-			err := getObject(internalRequest.Name, internalRequest.Namespace, k8sClient, ctx, returnedObject)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(internalRequest.Spec).To(Equal(returnedObject.Spec))
-		})
-
-		It("returns and error if the requested resource doesn't exist", func() {
-			returnedObject := &v1alpha1.InternalRequest{}
-			err := getObject("non-existent-request", "non-existent-request", k8sClient, ctx, returnedObject)
-			Expect(err).To(HaveOccurred())
-			Expect(errors.IsNotFound(err)).To(BeTrue())
-			Expect(returnedObject).To(Equal(&v1alpha1.InternalRequest{}))
-		})
 	})
 
 	Context("When calling GetInternalRequest", func() {

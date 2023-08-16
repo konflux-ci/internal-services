@@ -23,8 +23,8 @@ import (
 	"github.com/redhat-appstudio/internal-services/api/v1alpha1"
 	"github.com/redhat-appstudio/internal-services/loader"
 	"github.com/redhat-appstudio/internal-services/tekton"
-	"github.com/redhat-appstudio/operator-goodies/predicates"
-	"github.com/redhat-appstudio/operator-goodies/reconciler"
+	"github.com/redhat-appstudio/operator-toolkit/controller"
+	"github.com/redhat-appstudio/operator-toolkit/predicates"
 	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -44,16 +44,6 @@ type Reconciler struct {
 	Log            logr.Logger
 	InternalClient client.Client
 	Scheme         *runtime.Scheme
-}
-
-// NewInternalRequestReconciler creates and returns a Reconciler.
-func NewInternalRequestReconciler(client client.Client, remoteClient client.Client, logger *logr.Logger, scheme *runtime.Scheme) *Reconciler {
-	return &Reconciler{
-		Client:         remoteClient,
-		InternalClient: client,
-		Log:            logger.WithName("internalRequest"),
-		Scheme:         scheme,
-	}
 }
 
 // +kubebuilder:rbac:groups=appstudio.redhat.com,resources=internalrequests,verbs=get;list;watch;create;update;patch;delete
@@ -81,7 +71,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	adapter := NewAdapter(ctx, r.Client, r.InternalClient, internalRequest, loader.NewLoader(), logger)
 
-	return reconciler.ReconcileHandler([]reconciler.ReconcileOperation{
+	return controller.ReconcileHandler([]controller.Operation{
 		adapter.EnsureRequestINotCompleted,
 		adapter.EnsureConfigIsLoaded, // This operation sets the config in the adapter to be used in other operations.
 		adapter.EnsureRequestIsAllowed,
@@ -92,15 +82,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	})
 }
 
-// SetupController creates a new InternalRequest reconciler and adds it to the Manager.
-func SetupController(mgr ctrl.Manager, remoteCluster cluster.Cluster, log *logr.Logger) error {
-	return setupControllerWithManager(mgr, remoteCluster, NewInternalRequestReconciler(mgr.GetClient(), remoteCluster.GetClient(), log, mgr.GetScheme()))
-}
+// Register registers the controller with the passed manager and log. This controller monitors new InternalRequests and
+// filters out status updates. It also watches for PipelineRuns created by this controller and owned by the
+// InternalRequests so the owner gets reconciled on PipelineRun changes.
+func (r *Reconciler) Register(mgr ctrl.Manager, log *logr.Logger, remoteCluster cluster.Cluster) error {
+	r.Client = remoteCluster.GetClient()
+	r.InternalClient = mgr.GetClient()
+	r.Log = log.WithName("internalRequest")
 
-// setupControllerWithManager sets up the controller with the Manager which monitors new InternalRequests and filters out
-// status updates. This controller also watches for PipelineRuns created by this controller and owned by the InternalRequests so
-// the owner gets reconciled on PipelineRun changes.
-func setupControllerWithManager(mgr ctrl.Manager, remoteCluster cluster.Cluster, reconciler *Reconciler) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(
 			&v1alpha1.InternalRequest{},
@@ -117,5 +106,5 @@ func setupControllerWithManager(mgr ctrl.Manager, remoteCluster cluster.Cluster,
 				Group: "appstudio.redhat.com",
 			},
 		}, builder.WithPredicates(tekton.InternalRequestPipelineRunSucceededPredicate())).
-		Complete(reconciler)
+		Complete(r)
 }

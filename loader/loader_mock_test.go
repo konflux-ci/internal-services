@@ -1,12 +1,11 @@
 package loader
 
 import (
-	"errors"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/redhat-appstudio/internal-services/api/v1alpha1"
+	toolkit "github.com/redhat-appstudio/operator-toolkit/loader"
 	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("Loader Mock", Ordered, func() {
@@ -18,63 +17,10 @@ var _ = Describe("Loader Mock", Ordered, func() {
 		loader = NewMockLoader()
 	})
 
-	Context("When calling getMockedResourceAndErrorFromContext", func() {
-		contextErr := errors.New("error")
-		contextResource := &v1alpha1.InternalRequest{
-			ObjectMeta: v12.ObjectMeta{
-				Name:      "pod",
-				Namespace: "default",
-			},
-		}
-
-		It("returns the resource from the context", func() {
-			mockContext := GetMockedContext(ctx, []MockData{
-				{
-					ContextKey: InternalRequestContextKey,
-					Resource:   contextResource,
-				},
-			})
-			resource, err := getMockedResourceAndErrorFromContext(mockContext, InternalRequestContextKey, contextResource)
-			Expect(err).To(BeNil())
-			Expect(resource).To(Equal(contextResource))
-		})
-
-		It("returns the error from the context", func() {
-			mockContext := GetMockedContext(ctx, []MockData{
-				{
-					ContextKey: InternalRequestContextKey,
-					Err:        contextErr,
-				},
-			})
-			resource, err := getMockedResourceAndErrorFromContext(mockContext, InternalRequestContextKey, contextResource)
-			Expect(err).To(Equal(contextErr))
-			Expect(resource).To(BeNil())
-		})
-
-		It("returns the resource and the error from the context", func() {
-			mockContext := GetMockedContext(ctx, []MockData{
-				{
-					ContextKey: InternalRequestContextKey,
-					Resource:   contextResource,
-					Err:        contextErr,
-				},
-			})
-			resource, err := getMockedResourceAndErrorFromContext(mockContext, InternalRequestContextKey, contextResource)
-			Expect(err).To(Equal(contextErr))
-			Expect(resource).To(Equal(contextResource))
-		})
-
-		It("should panic when the mocked data is not present", func() {
-			Expect(func() {
-				_, _ = getMockedResourceAndErrorFromContext(ctx, InternalRequestContextKey, contextResource)
-			}).To(Panic())
-		})
-	})
-
 	Context("When calling GetInternalRequest", func() {
 		It("returns the resource and error from the context", func() {
 			internalRequest := &v1alpha1.InternalRequest{}
-			mockContext := GetMockedContext(ctx, []MockData{
+			mockContext := toolkit.GetMockedContext(ctx, []toolkit.MockData{
 				{
 					ContextKey: InternalRequestContextKey,
 					Resource:   internalRequest,
@@ -89,7 +35,7 @@ var _ = Describe("Loader Mock", Ordered, func() {
 	Context("When calling GetInternalRequestPipeline", func() {
 		It("returns the resource and error from the context", func() {
 			pipeline := &tektonv1beta1.Pipeline{}
-			mockContext := GetMockedContext(ctx, []MockData{
+			mockContext := toolkit.GetMockedContext(ctx, []toolkit.MockData{
 				{
 					ContextKey: InternalRequestPipelineContextKey,
 					Resource:   pipeline,
@@ -104,7 +50,7 @@ var _ = Describe("Loader Mock", Ordered, func() {
 	Context("When calling GetInternalRequestPipelineRun", func() {
 		It("returns the resource and error from the context", func() {
 			pipelineRun := &tektonv1beta1.PipelineRun{}
-			mockContext := GetMockedContext(ctx, []MockData{
+			mockContext := toolkit.GetMockedContext(ctx, []toolkit.MockData{
 				{
 					ContextKey: InternalRequestPipelineRunContextKey,
 					Resource:   pipelineRun,
@@ -119,7 +65,7 @@ var _ = Describe("Loader Mock", Ordered, func() {
 	Context("When calling GetInternalServicesConfig", func() {
 		It("returns the resource and error from the context", func() {
 			internalServicesConfig := &v1alpha1.InternalServicesConfig{}
-			mockContext := GetMockedContext(ctx, []MockData{
+			mockContext := toolkit.GetMockedContext(ctx, []toolkit.MockData{
 				{
 					ContextKey: InternalServicesConfigContextKey,
 					Resource:   internalServicesConfig,

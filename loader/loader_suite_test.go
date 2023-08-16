@@ -19,7 +19,7 @@ package loader
 import (
 	"context"
 	appstudiov1alpha1 "github.com/redhat-appstudio/internal-services/api/v1alpha1"
-	"github.com/redhat-appstudio/operator-goodies/test"
+	"github.com/redhat-appstudio/operator-toolkit/test"
 	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"go/build"
 	"path/filepath"

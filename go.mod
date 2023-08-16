@@ -8,7 +8,6 @@ require (
 	github.com/onsi/gomega v1.24.1
 	github.com/operator-framework/operator-lib v0.11.0
 	github.com/prometheus/client_golang v1.14.0
-	github.com/redhat-appstudio/operator-goodies v0.0.0-20230113090719-a8a43f600367
 	github.com/redhat-appstudio/operator-toolkit v0.0.0-20230705141436-de654b7a7aed
 	github.com/tektoncd/pipeline v0.42.0
 	go.uber.org/zap v1.24.0
