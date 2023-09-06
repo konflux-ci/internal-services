@@ -20,6 +20,7 @@ import (
 	"fmt"
 	libhandler "github.com/operator-framework/operator-lib/handler"
 	"github.com/redhat-appstudio/internal-services/api/v1alpha1"
+	"github.com/redhat-appstudio/internal-services/metadata"
 	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -31,6 +32,9 @@ import (
 const (
 	// internalRequestLabelPrefix is the prefix of the internal request labels
 	internalRequestLabelPrefix = "internal-services.appstudio.openshift.io"
+
+	// PipelineTypeRelease is the type for PipelineRuns created to run a release Pipeline
+	PipelineTypeRelease = "release"
 )
 
 var (
@@ -81,6 +85,7 @@ func (i *InternalRequestPipelineRun) WithInternalRequest(internalRequest *v1alph
 	i.ObjectMeta.Labels = map[string]string{
 		InternalRequestNameLabel:      internalRequest.Name,
 		InternalRequestNamespaceLabel: internalRequest.Namespace,
+		metadata.PipelinesTypeLabel:   PipelineTypeRelease,
 	}
 
 	return i
