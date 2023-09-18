@@ -18,14 +18,17 @@ package main
 
 import (
 	"flag"
+	"github.com/redhat-appstudio/internal-services/metadata"
+	"github.com/redhat-appstudio/internal-services/tekton"
 	"github.com/redhat-appstudio/operator-toolkit/controller"
-	"go.uber.org/zap/zapcore"
-	"os"
-
 	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	"go.uber.org/zap/zapcore"
+	"k8s.io/apimachinery/pkg/labels"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"os"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/cluster"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
@@ -87,6 +90,13 @@ func main() {
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "b548bb9d.redhat.com",
+		NewCache: cache.BuilderWithOptions(cache.Options{
+			SelectorsByObject: cache.SelectorsByObject{
+				&tektonv1beta1.PipelineRun{}: {
+					Label: labels.SelectorFromSet(labels.Set{metadata.PipelinesTypeLabel: tekton.PipelineTypeRelease}),
+				},
+			},
+		}),
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")

@@ -293,7 +293,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 			pipelineRun, err := adapter.createInternalRequestPipelineRun()
 			Expect(pipelineRun).NotTo(BeNil())
 			Expect(err).To(BeNil())
-			Expect(pipelineRun.Labels).To(HaveLen(2))
+			Expect(pipelineRun.Labels).To(HaveLen(3))
 			Expect(pipelineRun.Spec.Params).To(HaveLen(len(adapter.internalRequest.Spec.Params)))
 		})
 
