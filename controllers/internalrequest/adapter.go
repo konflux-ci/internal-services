@@ -91,7 +91,7 @@ func (a *Adapter) EnsurePipelineExists() (controller.OperationResult, error) {
 
 	if err != nil {
 		patch := client.MergeFrom(a.internalRequest.DeepCopy())
-		a.internalRequest.MarkFailed(fmt.Sprintf("No endpoint to handle '%s' requests", a.internalRequest.Spec.Request))
+		a.internalRequest.MarkRejected(fmt.Sprintf("No endpoint to handle '%s' requests", a.internalRequest.Spec.Request))
 		return controller.RequeueOnErrorOrStop(a.client.Status().Patch(a.ctx, a.internalRequest, patch))
 	}
 
