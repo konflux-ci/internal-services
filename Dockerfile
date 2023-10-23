@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.19 as builder
+FROM registry.access.redhat.com/ubi9/go-toolset:1.19 as builder
 ARG TARGETOS
 ARG TARGETARCH
 
@@ -27,11 +27,18 @@ COPY tekton/ tekton/
 # by leaving it empty we can ensure that the container and binary shipped on it will have the same platform.
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o manager main.go
 
-# Use distroless as minimal base image to package the manager binary
-# Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM gcr.io/distroless/static:nonroot
+# Use ubi-micro as minimal base image to package the manager binary
+# See https://catalog.redhat.com/software/containers/ubi9/ubi-micro/615bdf943f6014fa45ae1b58
+FROM registry.access.redhat.com/ubi9/ubi-micro:9.2-15.1696515526
 WORKDIR /
 COPY --from=builder /workspace/manager .
+
+# It is mandatory to set these labels
+LABEL description="RHTAP Internal Services"
+LABEL io.k8s.description="RHTAP Internal Services"
+LABEL io.k8s.display-name="internal-services"
+LABEL summary="RHTAP Internal Services"
+
 USER 65532:65532
 
 ENTRYPOINT ["/manager"]
