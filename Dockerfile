@@ -1,9 +1,9 @@
 # Build the manager binary
-FROM registry.access.redhat.com/ubi9/go-toolset:1.19 as builder
+FROM registry.access.redhat.com/ubi9/go-toolset:1.20 as builder
+
 ARG TARGETOS
 ARG TARGETARCH
 
-WORKDIR /workspace
 # Copy the Go Modules manifests
 COPY go.mod go.mod
 COPY go.sum go.sum
@@ -27,16 +27,19 @@ COPY tekton/ tekton/
 # by leaving it empty we can ensure that the container and binary shipped on it will have the same platform.
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o manager main.go
 
-# Use ubi-micro as minimal base image to package the manager binary
-# See https://catalog.redhat.com/software/containers/ubi9/ubi-micro/615bdf943f6014fa45ae1b58
-FROM registry.access.redhat.com/ubi9/ubi-micro:9.2-15.1696515526
-WORKDIR /
-COPY --from=builder /workspace/manager .
+# Use ubi-minimal as minimal base image to package the manager binary
+# See https://catalog.redhat.com/software/containers/ubi9-minimal/61832888c0d15aff4912fe0d
+FROM registry.access.redhat.com/ubi9-minimal:9.3-1361
+COPY --from=builder /opt/app-root/src/manager /
+
+# Temp fix to address CVE-2023-38545 and CVE-2023-38546
+RUN microdnf update -y curl-minimal
 
 # It is mandatory to set these labels
 LABEL description="RHTAP Internal Services"
 LABEL io.k8s.description="RHTAP Internal Services"
 LABEL io.k8s.display-name="internal-services"
+LABEL io.openshift.tags="internal-services"
 LABEL summary="RHTAP Internal Services"
 
 USER 65532:65532
