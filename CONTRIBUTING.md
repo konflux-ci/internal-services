@@ -1,4 +1,4 @@
-# Contributing
+# Contributing DO NOT MERGE
 
 Contributions of all kinds are welcome. In particular pull requests are appreciated. The authors and maintainers will endeavor to help walk you through any issues in the pull request discussion, so please feel free to open a pull request even if you are new to such things.
 
