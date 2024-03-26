@@ -63,6 +63,7 @@ func init() {
 func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
+	var enableLeaderElectionId string
 	var probeAddr string
 	var remoteClusterConfigFile string
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
@@ -70,6 +71,9 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+	flag.StringVar(&enableLeaderElectionId, "leader-election-id",
+		"b548bb9d.redhat.com",
+		"Enable overriding leader election ID for controller manager. ")
 	flag.StringVar(&remoteClusterConfigFile, "remote-cluster-config-file", "",
 		"The remote client will load its initial configuration from this file. "+
 			"Omit this flag to use the default configuration values. "+
@@ -89,7 +93,7 @@ func main() {
 		Port:                   9443,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "b548bb9d.redhat.com",
+		LeaderElectionID:       enableLeaderElectionId,
 		NewCache: cache.BuilderWithOptions(cache.Options{
 			SelectorsByObject: cache.SelectorsByObject{
 				&tektonv1beta1.PipelineRun{}: {
