@@ -18,10 +18,11 @@ package tekton
 
 import (
 	"context"
-	"github.com/redhat-appstudio/operator-toolkit/test"
 	"go/build"
 	"path/filepath"
 	"testing"
+
+	"github.com/konflux-ci/operator-toolkit/test"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

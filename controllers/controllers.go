@@ -17,8 +17,8 @@ limitations under the License.
 package controllers
 
 import (
+	"github.com/konflux-ci/operator-toolkit/controller"
 	"github.com/redhat-appstudio/internal-services/controllers/internalrequest"
-	"github.com/redhat-appstudio/operator-toolkit/controller"
 )
 
 var EnabledControllers = []controller.Controller{

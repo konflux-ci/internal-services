@@ -18,13 +18,14 @@ package internalrequest
 
 import (
 	"context"
-	appstudiov1alpha1 "github.com/redhat-appstudio/internal-services/api/v1alpha1"
-	"github.com/redhat-appstudio/operator-toolkit/test"
-	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"go/build"
 	"path/filepath"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"testing"
+
+	"github.com/konflux-ci/operator-toolkit/test"
+	appstudiov1alpha1 "github.com/redhat-appstudio/internal-services/api/v1alpha1"
+	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
