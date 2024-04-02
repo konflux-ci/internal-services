@@ -17,12 +17,13 @@ limitations under the License.
 package tekton
 
 import (
-	libhandler "github.com/operator-framework/operator-lib/handler"
-	"github.com/redhat-appstudio/internal-services/api/v1alpha1"
-	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"reflect"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
+
+	"github.com/konflux-ci/internal-services/api/v1alpha1"
+	libhandler "github.com/operator-framework/operator-lib/handler"
+	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // GetResultsFromPipelineRun returns a map with all the results emitted by the given PipelineRun. Only string results

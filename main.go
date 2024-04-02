@@ -20,13 +20,12 @@ import (
 	"flag"
 	"os"
 
-	"github.com/redhat-appstudio/internal-services/metadata"
-	"github.com/redhat-appstudio/internal-services/tekton"
-
+	"github.com/konflux-ci/internal-services/metadata"
+	"github.com/konflux-ci/internal-services/tekton"
 	"github.com/konflux-ci/operator-toolkit/controller"
+	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"go.uber.org/zap/zapcore"
 
-	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"k8s.io/apimachinery/pkg/labels"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -35,7 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cluster"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	"github.com/redhat-appstudio/internal-services/controllers"
+	"github.com/konflux-ci/internal-services/controllers"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -47,7 +46,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	appstudiov1alpha1 "github.com/redhat-appstudio/internal-services/api/v1alpha1"
+	konfluxciv1alpha1 "github.com/konflux-ci/internal-services/api/v1alpha1"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -59,7 +58,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(tektonv1beta1.AddToScheme(scheme))
-	utilruntime.Must(appstudiov1alpha1.AddToScheme(scheme))
+	utilruntime.Must(konfluxciv1alpha1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 

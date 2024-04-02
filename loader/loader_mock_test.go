@@ -1,10 +1,10 @@
 package loader
 
 import (
+	"github.com/konflux-ci/internal-services/api/v1alpha1"
 	toolkit "github.com/konflux-ci/operator-toolkit/loader"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/redhat-appstudio/internal-services/api/v1alpha1"
 	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 )
 

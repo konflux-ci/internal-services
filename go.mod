@@ -1,4 +1,4 @@
-module github.com/redhat-appstudio/internal-services
+module github.com/konflux-ci/internal-services
 
 go 1.18
 

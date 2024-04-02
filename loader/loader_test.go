@@ -1,10 +1,10 @@
 package loader
 
 import (
+	"github.com/konflux-ci/internal-services/api/v1alpha1"
+	"github.com/konflux-ci/internal-services/tekton"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/redhat-appstudio/internal-services/api/v1alpha1"
-	"github.com/redhat-appstudio/internal-services/tekton"
 	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

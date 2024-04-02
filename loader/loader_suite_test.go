@@ -22,8 +22,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	konfluxciv1alpha1 "github.com/konflux-ci/internal-services/api/v1alpha1"
 	"github.com/konflux-ci/operator-toolkit/test"
-	appstudiov1alpha1 "github.com/redhat-appstudio/internal-services/api/v1alpha1"
 	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -76,7 +76,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
-	Expect(appstudiov1alpha1.AddToScheme(scheme.Scheme)).To(Succeed())
+	Expect(konfluxciv1alpha1.AddToScheme(scheme.Scheme)).To(Succeed())
 	Expect(tektonv1beta1.AddToScheme(scheme.Scheme)).To(Succeed())
 
 	//+kubebuilder:scaffold:scheme
