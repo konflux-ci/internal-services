@@ -2,9 +2,10 @@ package loader
 
 import (
 	"context"
+
+	toolkit "github.com/konflux-ci/operator-toolkit/loader"
 	"github.com/redhat-appstudio/internal-services/api/v1alpha1"
 	"github.com/redhat-appstudio/internal-services/tekton"
-	toolkit "github.com/redhat-appstudio/operator-toolkit/loader"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )

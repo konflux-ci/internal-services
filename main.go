@@ -18,16 +18,19 @@ package main
 
 import (
 	"flag"
+	"os"
+
 	"github.com/redhat-appstudio/internal-services/metadata"
 	"github.com/redhat-appstudio/internal-services/tekton"
-	"github.com/redhat-appstudio/operator-toolkit/controller"
-	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+
+	"github.com/konflux-ci/operator-toolkit/controller"
 	"go.uber.org/zap/zapcore"
+
+	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"k8s.io/apimachinery/pkg/labels"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/cluster"
 	"sigs.k8s.io/controller-runtime/pkg/manager"

@@ -18,8 +18,9 @@ package internalrequest
 
 import (
 	"fmt"
+
+	toolkit "github.com/konflux-ci/operator-toolkit/loader"
 	"github.com/redhat-appstudio/internal-services/loader"
-	toolkit "github.com/redhat-appstudio/operator-toolkit/loader"
 
 	"reflect"
 

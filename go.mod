@@ -4,11 +4,11 @@ go 1.18
 
 require (
 	github.com/go-logr/logr v1.2.3
+	github.com/konflux-ci/operator-toolkit v0.0.0-20240402130556-ef6dcbeca69d
 	github.com/onsi/ginkgo/v2 v2.6.0
 	github.com/onsi/gomega v1.24.1
 	github.com/operator-framework/operator-lib v0.11.0
 	github.com/prometheus/client_golang v1.14.0
-	github.com/redhat-appstudio/operator-toolkit v0.0.0-20230705141436-de654b7a7aed
 	github.com/tektoncd/pipeline v0.42.0
 	go.uber.org/zap v1.24.0
 	k8s.io/api v0.26.1

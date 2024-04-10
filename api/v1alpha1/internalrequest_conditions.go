@@ -1,6 +1,6 @@
 package v1alpha1
 
-import "github.com/redhat-appstudio/operator-toolkit/conditions"
+import "github.com/konflux-ci/operator-toolkit/conditions"
 
 const (
 	// SucceededConditionType is the type used when setting a status condition
