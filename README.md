@@ -267,7 +267,6 @@ status:
 
 ## Links
 
-- [Configuring the RHTAP Internal Services system](https://docs.google.com/document/d/1ElMVAgHEZ0NHcy9QAJtJAd6LrSY_n8Al18oMPE3STm0/preview)
 - [Gain view access to RHTAP logs](https://gitlab.cee.redhat.com/service/app-interface/-/blob/master/docs/stonesoup/sop/getting-access.md#gain-view-access-to-rhtap-logs)
 - [Splunk & app-sre](https://gitlab.cee.redhat.com/service/app-interface/-/blob/master/docs/app-sre/splunk.md#getting-support-working-with-it)
 - [Kind - Rootless](https://kind.sigs.k8s.io/docs/user/rootless/)
