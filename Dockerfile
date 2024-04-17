@@ -36,11 +36,13 @@ COPY --from=builder /opt/app-root/src/manager /
 RUN microdnf update -y curl-minimal
 
 # It is mandatory to set these labels
-LABEL description="RHTAP Internal Services"
-LABEL io.k8s.description="RHTAP Internal Services"
+LABEL name="Konflux Internal Services"
+LABEL description="Konflux Internal Services"
+LABEL io.k8s.description="Konflux Internal Services"
 LABEL io.k8s.display-name="internal-services"
 LABEL io.openshift.tags="internal-services"
-LABEL summary="RHTAP Internal Services"
+LABEL summary="Konflux Internal Services"
+LABEL com.redhat.component="internal-services"
 
 USER 65532:65532
 
