@@ -21,7 +21,7 @@ import (
 
 	"github.com/konflux-ci/operator-toolkit/conditions"
 
-	"github.com/redhat-appstudio/internal-services/metrics"
+	"github.com/konflux-ci/internal-services/metrics"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

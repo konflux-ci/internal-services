@@ -131,7 +131,7 @@ $ kubectl apply --filename https://storage.googleapis.com/tekton-releases/pipeli
 ```
 ### Clone and run the operator
 ```
-$ git clone git@github.com:redhat-appstudio/internal-services.git
+$ git clone git@github.com:konflux-ci/internal-services.git
 Cloning into 'internal-services'...
 ```
 #### Installing the internal-services CR

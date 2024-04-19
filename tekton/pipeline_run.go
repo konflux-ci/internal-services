@@ -18,15 +18,16 @@ package tekton
 
 import (
 	"fmt"
+	"reflect"
+	"strings"
+
+	"github.com/konflux-ci/internal-services/api/v1alpha1"
+	"github.com/konflux-ci/internal-services/metadata"
 	libhandler "github.com/operator-framework/operator-lib/handler"
-	"github.com/redhat-appstudio/internal-services/api/v1alpha1"
-	"github.com/redhat-appstudio/internal-services/metadata"
 	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"reflect"
-	"strings"
 )
 
 const (

@@ -16,14 +16,15 @@ limitations under the License.
 package tekton
 
 import (
+	"reflect"
+	"strings"
+
+	"github.com/konflux-ci/internal-services/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/operator-framework/operator-lib/handler"
-	"github.com/redhat-appstudio/internal-services/api/v1alpha1"
 	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"reflect"
-	"strings"
 )
 
 var _ = Describe("PipelineRun", Ordered, func() {

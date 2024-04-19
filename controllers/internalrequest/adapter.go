@@ -22,10 +22,10 @@ import (
 	"os"
 
 	"github.com/go-logr/logr"
+	"github.com/konflux-ci/internal-services/api/v1alpha1"
+	"github.com/konflux-ci/internal-services/loader"
+	"github.com/konflux-ci/internal-services/tekton"
 	"github.com/konflux-ci/operator-toolkit/controller"
-	"github.com/redhat-appstudio/internal-services/api/v1alpha1"
-	"github.com/redhat-appstudio/internal-services/loader"
-	"github.com/redhat-appstudio/internal-services/tekton"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
