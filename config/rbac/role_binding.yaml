@@ -8,7 +8,7 @@ metadata:
     app.kubernetes.io/created-by: internal-services
     app.kubernetes.io/part-of: internal-services
     app.kubernetes.io/managed-by: kustomize
-  name: manager-rolebinding
+  name: internal-services-manager-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
