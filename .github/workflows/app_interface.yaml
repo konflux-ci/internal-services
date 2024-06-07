@@ -12,7 +12,7 @@ jobs:
       NAMESPACE: stonesoup-int-srvc
       REMOTE_CLIENT_CONFIG_SECRET: remote-client-config
       REMOTE_CLIENT_CONFIG_MOUNT_PATH: "/mnt/internal-services/remote-client-config"
-      USERS: "damoreno jbieren lmendes shebert"
+      USERS: "damoreno jbieren lmendes shebert mmalina"
       YQ_VERSION: "v4.30.8"
     steps:
       - name: Checkout internal-services repo
