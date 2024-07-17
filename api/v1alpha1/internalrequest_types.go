@@ -22,6 +22,7 @@ import (
 	"github.com/konflux-ci/operator-toolkit/conditions"
 
 	"github.com/konflux-ci/internal-services/metrics"
+	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -37,6 +38,10 @@ type InternalRequestSpec struct {
 	// kubebuilder:pruning:PreserveUnknownFields
 	// +optional
 	Params map[string]string `json:"params,omitempty"`
+
+	// Timeouts defines the different Timeouts to use in the InternalRequest PipelineRun execution
+	// +optional
+	Timeouts tektonv1beta1.TimeoutFields `json:"timeouts,omitempty"`
 }
 
 // InternalRequestStatus defines the observed state of InternalRequest.

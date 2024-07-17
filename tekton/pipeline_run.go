@@ -89,6 +89,10 @@ func (i *InternalRequestPipelineRun) WithInternalRequest(internalRequest *v1alph
 		metadata.PipelinesTypeLabel:   PipelineTypeRelease,
 	}
 
+	if internalRequest.Spec.Timeouts != (tektonv1beta1.TimeoutFields{}) {
+		i.Spec.Timeouts = &internalRequest.Spec.Timeouts
+	}
+
 	return i
 }
 

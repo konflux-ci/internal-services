@@ -53,6 +53,24 @@ spec:
                   will be translated into a Tekton pipeline
                 pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                 type: string
+              timeouts:
+                description: Timeouts defines the different Timeouts to use in the
+                  InternalRequest PipelineRun execution
+                properties:
+                  finally:
+                    description: Finally sets the maximum allowed duration of this
+                      pipeline's finally
+                    type: string
+                  pipeline:
+                    description: Pipeline sets the maximum allowed duration for execution
+                      of the entire pipeline. The sum of individual timeouts for tasks
+                      and finally must not exceed this value.
+                    type: string
+                  tasks:
+                    description: Tasks sets the maximum allowed duration of this pipeline's
+                      tasks
+                    type: string
+                type: object
             required:
             - request
             type: object
