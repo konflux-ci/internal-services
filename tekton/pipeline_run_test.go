@@ -20,6 +20,8 @@ import (
 	"strings"
 
 	"github.com/konflux-ci/internal-services/api/v1alpha1"
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/operator-framework/operator-lib/handler"
@@ -90,6 +92,19 @@ var _ = Describe("PipelineRun", Ordered, func() {
 
 			Expect(newInternalRequestPipelineRun.Labels[InternalRequestNameLabel]).To(Equal(internalRequest.Name))
 			Expect(newInternalRequestPipelineRun.Labels[InternalRequestNamespaceLabel]).To(Equal(internalRequest.Namespace))
+		})
+
+		It("should contain the timeout values", func() {
+
+			newInternalRequestPipelineRun := NewInternalRequestPipelineRun(internalServicesConfig)
+			newInternalRequestPipelineRun.WithInternalRequest(internalRequest)
+			timeouts := &tektonv1beta1.TimeoutFields{
+				Pipeline: &metav1.Duration{Duration: 1 * time.Hour},
+				Tasks:    &metav1.Duration{Duration: 1 * time.Hour},
+				Finally:  &metav1.Duration{Duration: 1 * time.Hour},
+			}
+
+			Expect(newInternalRequestPipelineRun.Spec.Timeouts).To(Equal(timeouts))
 		})
 	})
 
@@ -174,6 +189,11 @@ var _ = Describe("PipelineRun", Ordered, func() {
 				Params: map[string]string{
 					"foo": "bar",
 					"baz": "qux",
+				},
+				Timeouts: tektonv1beta1.TimeoutFields{
+					Pipeline: &metav1.Duration{Duration: 1 * time.Hour},
+					Tasks:    &metav1.Duration{Duration: 1 * time.Hour},
+					Finally:  &metav1.Duration{Duration: 1 * time.Hour},
 				},
 			},
 		}
