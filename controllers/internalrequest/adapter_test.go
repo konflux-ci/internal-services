@@ -315,6 +315,13 @@ var _ = Describe("PipelineRun", Ordered, func() {
 			Expect(err).To(BeNil())
 			Expect(pipelineRun.Spec.PipelineRef.Name).To(Equal(adapter.internalRequestPipeline.Name))
 		})
+
+		It("creates a PipelineRun with the proper service account", func() {
+			pipelineRun, err := adapter.createInternalRequestPipelineRun()
+			Expect(pipelineRun).NotTo(BeNil())
+			Expect(err).To(BeNil())
+			Expect(pipelineRun.Spec.ServiceAccountName).To(Equal("sample-sa"))
+		})
 	})
 
 	Context("When calling getDefaultInternalServicesConfig", func() {
@@ -430,7 +437,8 @@ var _ = Describe("PipelineRun", Ordered, func() {
 				Namespace: "default",
 			},
 			Spec: v1alpha1.InternalRequestSpec{
-				Request: "request",
+				Request:        "request",
+				ServiceAccount: "sample-sa",
 			},
 		}
 		Expect(k8sClient.Create(ctx, internalRequest)).To(Succeed())

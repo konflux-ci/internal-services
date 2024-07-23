@@ -42,6 +42,12 @@ type InternalRequestSpec struct {
 	// Timeouts defines the different Timeouts to use in the InternalRequest PipelineRun execution
 	// +optional
 	Timeouts tektonv1beta1.TimeoutFields `json:"timeouts,omitempty"`
+
+	// ServiceAccount defines the serviceAccount to use in the InternalRequest PipelineRun execution.
+	// If none is passed, the default Tekton ServiceAccount will be used
+	// +kubebuilder:validation:Pattern=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+	// +optional
+	ServiceAccount string `json:"serviceAccount,omitempty"`
 }
 
 // InternalRequestStatus defines the observed state of InternalRequest.

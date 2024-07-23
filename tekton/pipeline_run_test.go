@@ -19,8 +19,9 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/konflux-ci/internal-services/api/v1alpha1"
 	"time"
+
+	"github.com/konflux-ci/internal-services/api/v1alpha1"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -105,6 +106,22 @@ var _ = Describe("PipelineRun", Ordered, func() {
 			}
 
 			Expect(newInternalRequestPipelineRun.Spec.Timeouts).To(Equal(timeouts))
+		})
+
+		It("should set the ServiceAccountName for the PipelineRun", func() {
+			newInternalRequestPipelineRun := NewInternalRequestPipelineRun(internalServicesConfig)
+			newInternalRequestPipelineRun.WithInternalRequest(internalRequest)
+
+			Expect(newInternalRequestPipelineRun.Spec.ServiceAccountName).To(Equal(internalRequest.Spec.ServiceAccount))
+		})
+
+		It("should not set the ServiceAccountName for the PipelineRun if none is passed", func() {
+			newInternalRequestPipelineRun := NewInternalRequestPipelineRun(internalServicesConfig)
+			newInternalRequest := internalRequest.DeepCopy()
+			newInternalRequest.Spec.ServiceAccount = ""
+			newInternalRequestPipelineRun.WithInternalRequest(newInternalRequest)
+
+			Expect(newInternalRequestPipelineRun.Spec.ServiceAccountName).To(Equal(""))
 		})
 	})
 
@@ -195,6 +212,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 					Tasks:    &metav1.Duration{Duration: 1 * time.Hour},
 					Finally:  &metav1.Duration{Duration: 1 * time.Hour},
 				},
+				ServiceAccount: "sample-sa",
 			},
 		}
 		internalRequest.Kind = "InternalRequest"

@@ -93,6 +93,8 @@ func (i *InternalRequestPipelineRun) WithInternalRequest(internalRequest *v1alph
 		i.Spec.Timeouts = &internalRequest.Spec.Timeouts
 	}
 
+	i.Spec.ServiceAccountName = internalRequest.Spec.ServiceAccount
+
 	return i
 }
 
