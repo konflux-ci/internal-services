@@ -53,6 +53,12 @@ spec:
                   will be translated into a Tekton pipeline
                 pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                 type: string
+              serviceAccount:
+                description: ServiceAccount defines the serviceAccount to use in the
+                  InternalRequest PipelineRun execution. If none is passed, the default
+                  Tekton ServiceAccount will be used
+                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                type: string
               timeouts:
                 description: Timeouts defines the different Timeouts to use in the
                   InternalRequest PipelineRun execution
