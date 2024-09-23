@@ -29,7 +29,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o ma
 
 # Use ubi-minimal as minimal base image to package the manager binary
 # See https://catalog.redhat.com/software/containers/ubi9-minimal/61832888c0d15aff4912fe0d
-FROM registry.access.redhat.com/ubi9-minimal:9.4-1227.1725849298
+FROM registry.access.redhat.com/ubi9-minimal:9.4-1227.1726694542
 COPY --from=builder /opt/app-root/src/manager /
 
 # Temp fix to address CVE-2023-38545 and CVE-2023-38546
