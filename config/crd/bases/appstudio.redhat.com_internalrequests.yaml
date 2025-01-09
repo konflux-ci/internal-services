@@ -48,6 +48,81 @@ spec:
                 description: Params is the list of optional parameters to pass to
                   the Tekton pipeline kubebuilder:pruning:PreserveUnknownFields
                 type: object
+              pipeline:
+                description: Pipeline contains the details of the pipeline to execute
+                  for the InternalRequest
+                properties:
+                  params:
+                    description: Params is a slice of parameters for a given resolver
+                    items:
+                      description: Param defines the parameters for a given resolver
+                        in PipelineRef
+                      properties:
+                        name:
+                          description: Name is the name of the parameter
+                          type: string
+                        value:
+                          description: Value is the value of the parameter
+                          type: string
+                      required:
+                      - name
+                      - value
+                      type: object
+                    type: array
+                  pipelineRef:
+                    description: PipelineRef is the reference to the Pipeline
+                    properties:
+                      params:
+                        description: Params is a slice of parameters for a given resolver
+                        items:
+                          description: Param defines the parameters for a given resolver
+                            in PipelineRef
+                          properties:
+                            name:
+                              description: Name is the name of the parameter
+                              type: string
+                            value:
+                              description: Value is the value of the parameter
+                              type: string
+                          required:
+                          - name
+                          - value
+                          type: object
+                        type: array
+                      resolver:
+                        description: Resolver is the name of a Tekton resolver to
+                          be used (e.g. git)
+                        type: string
+                    required:
+                    - params
+                    - resolver
+                    type: object
+                  serviceAccountName:
+                    description: ServiceAccountName is the ServiceAccount to use during
+                      the execution of the Pipeline
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                    type: string
+                  timeouts:
+                    description: Timeouts defines the different Timeouts to use in
+                      the PipelineRun execution
+                    properties:
+                      finally:
+                        description: Finally sets the maximum allowed duration of
+                          this pipeline's finally
+                        type: string
+                      pipeline:
+                        description: Pipeline sets the maximum allowed duration for
+                          execution of the entire pipeline. The sum of individual
+                          timeouts for tasks and finally must not exceed this value.
+                        type: string
+                      tasks:
+                        description: Tasks sets the maximum allowed duration of this
+                          pipeline's tasks
+                        type: string
+                    type: object
+                required:
+                - pipelineRef
+                type: object
               request:
                 description: Request is the name of the internal internalrequest which
                   will be translated into a Tekton pipeline
@@ -77,8 +152,6 @@ spec:
                       tasks
                     type: string
                 type: object
-            required:
-            - request
             type: object
           status:
             description: InternalRequestStatus defines the observed state of InternalRequest.

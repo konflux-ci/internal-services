@@ -135,3 +135,45 @@ func (i *InternalRequestPipelineRun) WithPipeline(pipeline *tektonv1beta1.Pipeli
 
 	return i
 }
+
+// WithPipelineRef sets a PipelineRef to point to the specified pipeline. It will also add a Workspace to the Pipeline
+// with a name matching the name of the VolumeClaim defined in the InternalServicesConfig.
+func (i *InternalRequestPipelineRun) WithPipelineRef(internalRequest *v1alpha1.InternalRequest, internalServicesConfig *v1alpha1.InternalServicesConfig) *InternalRequestPipelineRun {
+	i.Spec.PipelineRef = internalRequest.Spec.Pipeline.PipelineRef.ToTektonPipelineRef()
+	if i.Spec.PipelineRef.Resolver == "cluster" {
+		i.Spec.PipelineRef.Params = append(i.Spec.PipelineRef.Params,
+			tektonv1beta1.Param{
+				Name: "namespace",
+				Value: tektonv1beta1.ParamValue{
+					Type:      tektonv1beta1.ParamTypeString,
+					StringVal: internalRequest.Namespace,
+				},
+			},
+			tektonv1beta1.Param{
+				Name: "kind",
+				Value: tektonv1beta1.ParamValue{
+					Type:      tektonv1beta1.ParamTypeString,
+					StringVal: "pipeline",
+				},
+			},
+		)
+	}
+
+	i.Spec.Workspaces = []tektonv1beta1.WorkspaceBinding{
+		{
+			Name: internalServicesConfig.Spec.VolumeClaim.Name,
+			VolumeClaimTemplate: &corev1.PersistentVolumeClaim{
+				Spec: corev1.PersistentVolumeClaimSpec{
+					AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							corev1.ResourceStorage: resource.MustParse(internalServicesConfig.Spec.VolumeClaim.Size),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	return i
+}

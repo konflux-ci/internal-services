@@ -22,6 +22,7 @@ import (
 	"github.com/konflux-ci/operator-toolkit/conditions"
 
 	"github.com/konflux-ci/internal-services/metrics"
+	tektonutils "github.com/konflux-ci/internal-services/tekton/utils"
 	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,8 +32,12 @@ import (
 type InternalRequestSpec struct {
 	// Request is the name of the internal internalrequest which will be translated into a Tekton pipeline
 	// +kubebuilder:validation:Pattern=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
-	// +required
-	Request string `json:"request"`
+	// +optional
+	Request string `json:"request,omitempty"`
+
+	// Pipeline contains the details of the pipeline to execute for the InternalRequest
+	// +optional
+	Pipeline *tektonutils.ParameterizedPipeline `json:"pipeline,omitempty"`
 
 	// Params is the list of optional parameters to pass to the Tekton pipeline
 	// kubebuilder:pruning:PreserveUnknownFields

@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/konflux-ci/internal-services/loader"
+	"github.com/konflux-ci/internal-services/tekton/utils"
 	toolkit "github.com/konflux-ci/operator-toolkit/loader"
 
 	"reflect"
@@ -88,6 +89,29 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		})
 
 		It("should continue if the Pipeline exists", func() {
+			result, err := adapter.EnsurePipelineExists()
+			Expect(!result.CancelRequest && !result.RequeueRequest).To(BeTrue())
+			Expect(err).To(BeNil())
+		})
+
+		It("should continue if the InternalRequest Request field is empty", func() {
+			internalRequestNoRequest := &v1alpha1.InternalRequest{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "request",
+					Namespace: "default",
+				},
+				Spec: v1alpha1.InternalRequestSpec{
+					ServiceAccount: "sample-sa",
+				},
+			}
+			adapter.ctx = toolkit.GetMockedContext(ctx, []toolkit.MockData{
+				{
+					ContextKey: loader.InternalRequestContextKey,
+					Resource:   internalRequestNoRequest,
+				},
+			})
+			adapter.internalRequest.MarkRunning()
+
 			result, err := adapter.EnsurePipelineExists()
 			Expect(!result.CancelRequest && !result.RequeueRequest).To(BeTrue())
 			Expect(err).To(BeNil())
@@ -314,6 +338,74 @@ var _ = Describe("PipelineRun", Ordered, func() {
 			Expect(pipelineRun).NotTo(BeNil())
 			Expect(err).To(BeNil())
 			Expect(pipelineRun.Spec.PipelineRef.Name).To(Equal(adapter.internalRequestPipeline.Name))
+		})
+
+		It("creates a PipelineRun with the proper service account", func() {
+			pipelineRun, err := adapter.createInternalRequestPipelineRun()
+			Expect(pipelineRun).NotTo(BeNil())
+			Expect(err).To(BeNil())
+			Expect(pipelineRun.Spec.ServiceAccountName).To(Equal("sample-sa"))
+		})
+	})
+
+	Context("When calling createInternalRequestPipelineRun with a PipelineRef", func() {
+		AfterEach(func() {
+			deleteResources()
+		})
+
+		BeforeEach(func() {
+			createResources()
+			parameterizedPipeline := utils.ParameterizedPipeline{}
+			parameterizedPipeline.PipelineRef = utils.PipelineRef{
+				Resolver: "git",
+				Params: []utils.Param{
+					{Name: "url", Value: "my-url"},
+					{Name: "revision", Value: "my-revision"},
+					{Name: "pathInRepo", Value: "my-path"},
+				},
+			}
+			internalRequestPipelineRef := &v1alpha1.InternalRequest{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "request",
+					Namespace: "default",
+				},
+				Spec: v1alpha1.InternalRequestSpec{
+					ServiceAccount: "sample-sa",
+					Pipeline:       &parameterizedPipeline,
+				},
+			}
+			// Set a proper Kind
+			internalRequestPipelineRef.TypeMeta = metav1.TypeMeta{
+				Kind: "InternalRequest",
+			}
+			adapter.internalRequest = internalRequestPipelineRef
+			adapter.internalRequest.MarkRunning()
+		})
+
+		It("creates a PipelineRun with the InternalRequest params and labels", func() {
+			pipelineRun, err := adapter.createInternalRequestPipelineRun()
+			Expect(pipelineRun).NotTo(BeNil())
+			Expect(err).To(BeNil())
+			Expect(pipelineRun.Labels).To(HaveLen(3))
+			Expect(pipelineRun.Spec.Params).To(HaveLen(len(adapter.internalRequest.Spec.Params)))
+		})
+
+		It("creates a PipelineRun owned by the InternalRequest", func() {
+			pipelineRun, err := adapter.createInternalRequestPipelineRun()
+			Expect(pipelineRun).NotTo(BeNil())
+			Expect(err).To(BeNil())
+			Expect(pipelineRun.Annotations).To(HaveLen(2))
+			Expect(pipelineRun.Annotations[libhandler.NamespacedNameAnnotation]).To(
+				Equal(adapter.internalRequest.Namespace + "/" + adapter.internalRequest.Name),
+			)
+			Expect(pipelineRun.Annotations[libhandler.TypeAnnotation]).To(Equal(adapter.internalRequest.Kind))
+		})
+
+		It("creates a PipelineRun referencing the Pipeline requested in the InternalRequest", func() {
+			pipelineRun, err := adapter.createInternalRequestPipelineRun()
+			Expect(pipelineRun).NotTo(BeNil())
+			Expect(err).To(BeNil())
+			Expect(pipelineRun.Spec.PipelineRef.ResolverRef.Params).Should(ContainElement(HaveField("Value.StringVal", "my-url")))
 		})
 
 		It("creates a PipelineRun with the proper service account", func() {
