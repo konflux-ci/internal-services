@@ -45,10 +45,6 @@ jobs:
         run: |
           find . -type f -exec sed -i 's/namespace: system/namespace: ${{ env.NAMESPACE }}/' {} \;
         working-directory: app-interface-deployments/internal-services
-      - name: Update image
-        run: |
-          sed -i 's/image: controller:latest/image: quay.io\/redhat-appstudio\/internal-services:${{ github.sha }}/' manager.yaml
-        working-directory: app-interface-deployments/internal-services/manager
       - name: Add users to role binding
         run: |
           users=($USERS)
