@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/konflux-ci/internal-services/api/v1alpha1"
+	"github.com/konflux-ci/internal-services/tekton/utils"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -188,6 +189,99 @@ var _ = Describe("PipelineRun", Ordered, func() {
 
 			newInternalRequestPipelineRun := NewInternalRequestPipelineRun(internalServicesConfig)
 			newInternalRequestPipelineRun.WithPipeline(newPipeline, internalServicesConfig)
+
+			Expect(newInternalRequestPipelineRun.Spec.Workspaces).To(HaveLen(1))
+			Expect(newInternalRequestPipelineRun.Spec.Workspaces[0].Name).To(Equal(internalServicesConfig.Spec.VolumeClaim.Name))
+			Expect(newInternalRequestPipelineRun.Spec.Workspaces[0].VolumeClaimTemplate).NotTo(BeNil())
+		})
+	})
+
+	Context("When calling WithPipelineRef", func() {
+		It("should call the proper pipeline and add namespace and kind when using a cluster resolver", func() {
+			parameterizedPipeline := utils.ParameterizedPipeline{}
+			parameterizedPipeline.PipelineRef = utils.PipelineRef{
+				Resolver: "cluster",
+				Params: []utils.Param{
+					{Name: "name", Value: "my-pipeline"},
+				},
+			}
+			internalRequestPipelineRef := &v1alpha1.InternalRequest{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "request",
+					Namespace: "my-namespace",
+				},
+				Spec: v1alpha1.InternalRequestSpec{
+					ServiceAccount: "sample-sa",
+					Pipeline:       &parameterizedPipeline,
+				},
+			}
+			newInternalRequestPipelineRun := NewInternalRequestPipelineRun(internalServicesConfig)
+			newInternalRequestPipelineRun.WithPipelineRef(internalRequestPipelineRef, internalServicesConfig)
+
+			Expect(newInternalRequestPipelineRun.Spec.PipelineRef).NotTo(BeNil())
+			Expect(newInternalRequestPipelineRun.Spec.PipelineRef.ResolverRef.Params).To(ContainElement(tektonv1beta1.Param{
+				Name:  "name",
+				Value: tektonv1beta1.ParamValue{Type: tektonv1beta1.ParamTypeString, StringVal: "my-pipeline"},
+			}))
+			Expect(newInternalRequestPipelineRun.Spec.PipelineRef.ResolverRef.Params).To(ContainElement(tektonv1beta1.Param{
+				Name:  "namespace",
+				Value: tektonv1beta1.ParamValue{Type: tektonv1beta1.ParamTypeString, StringVal: "my-namespace"},
+			}))
+			Expect(newInternalRequestPipelineRun.Spec.PipelineRef.ResolverRef.Params).To(ContainElement(tektonv1beta1.Param{
+				Name:  "kind",
+				Value: tektonv1beta1.ParamValue{Type: tektonv1beta1.ParamTypeString, StringVal: "pipeline"},
+			}))
+		})
+
+		It("should contain the proper PipelineRef when using git resolvers", func() {
+			parameterizedPipeline := utils.ParameterizedPipeline{}
+			parameterizedPipeline.PipelineRef = utils.PipelineRef{
+				Resolver: "git",
+				Params: []utils.Param{
+					{Name: "url", Value: "my-url"},
+					{Name: "revision", Value: "my-revision"},
+					{Name: "pathInRepo", Value: "my-path"},
+				},
+			}
+			internalRequestPipelineRef := &v1alpha1.InternalRequest{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "request",
+					Namespace: "default",
+				},
+				Spec: v1alpha1.InternalRequestSpec{
+					ServiceAccount: "sample-sa",
+					Pipeline:       &parameterizedPipeline,
+				},
+			}
+			newInternalRequestPipelineRun := NewInternalRequestPipelineRun(internalServicesConfig)
+			newInternalRequestPipelineRun.WithPipelineRef(internalRequestPipelineRef, internalServicesConfig)
+
+			Expect(newInternalRequestPipelineRun.Spec.PipelineRef).NotTo(BeNil())
+			Expect(newInternalRequestPipelineRun.Spec.PipelineRef.ResolverRef.Params).Should(ContainElement(HaveField("Value.StringVal", "my-url")))
+		})
+
+		It("should contain a workspace", func() {
+			parameterizedPipeline := utils.ParameterizedPipeline{}
+			parameterizedPipeline.PipelineRef = utils.PipelineRef{
+				Resolver: "git",
+				Params: []utils.Param{
+					{Name: "url", Value: "my-url"},
+					{Name: "revision", Value: "my-revision"},
+					{Name: "pathInRepo", Value: "my-path"},
+				},
+			}
+			internalRequestPipelineRef := &v1alpha1.InternalRequest{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "request",
+					Namespace: "default",
+				},
+				Spec: v1alpha1.InternalRequestSpec{
+					ServiceAccount: "sample-sa",
+					Pipeline:       &parameterizedPipeline,
+				},
+			}
+			newInternalRequestPipelineRun := NewInternalRequestPipelineRun(internalServicesConfig)
+			newInternalRequestPipelineRun.WithPipelineRef(internalRequestPipelineRef, internalServicesConfig)
 
 			Expect(newInternalRequestPipelineRun.Spec.Workspaces).To(HaveLen(1))
 			Expect(newInternalRequestPipelineRun.Spec.Workspaces[0].Name).To(Equal(internalServicesConfig.Spec.VolumeClaim.Name))
