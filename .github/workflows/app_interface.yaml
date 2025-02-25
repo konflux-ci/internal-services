@@ -7,7 +7,7 @@ on:
 jobs:
   generate:
     name: Push internal-services resources
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     env:
       NAMESPACE: stonesoup-int-srvc
       REMOTE_CLIENT_CONFIG_SECRET: remote-client-config
