@@ -4,21 +4,17 @@ FROM registry.access.redhat.com/ubi9/go-toolset:9.5-1742197705 as builder
 ARG TARGETOS
 ARG TARGETARCH
 
+USER 1001
+
 # Copy the Go Modules manifests
-COPY go.mod go.mod
-COPY go.sum go.sum
+COPY --chown=1001:0 go.mod go.mod
+COPY --chown=1001:0 go.sum go.sum
 # cache deps before building and copying source so that we don't need to re-download as much
 # and so that source changes don't invalidate our downloaded layer
 RUN go mod download
 
 # Copy the go source
-COPY main.go main.go
-COPY api/ api/
-COPY controllers/ controllers/
-COPY loader/ loader/
-COPY metadata/ metadata/
-COPY metrics/ metrics/
-COPY tekton/ tekton/
+COPY --chown=1001:0 . .
 
 # Build
 # the GOARCH has not a default value to allow the binary be built according to the host where the command
