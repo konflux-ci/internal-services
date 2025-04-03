@@ -180,6 +180,39 @@ spec:
           value: $(params.output-image).sealights.git
         - name: disable-token-save
           value: "true"
+    - name: sealights-unit-tests
+      runAfter:
+        - sealights-go-instrumentation
+      taskSpec:
+        volumes:
+          - name: sealights-credentials
+            secret:
+              secretName: sealights-credentials
+          - name: workdir
+            emptyDir: {}
+        stepTemplate:
+          volumeMounts:
+            - mountPath: /var/workdir
+              name: workdir
+            - name: sealights-credentials
+              mountPath: /usr/local/sealights-credentials
+        steps:
+          - name: use-trusted-artifact
+            image: quay.io/redhat-appstudio/build-trusted-artifacts:latest@sha256:9b180776a41d9a22a1c51539f1647c60defbbd55b44bbebdd4130e33512d8b0d
+            args:
+              - use
+              - $(tasks.sealights-go-instrumentation.results.SOURCE_ARTIFACT)=/var/workdir/source
+          - name: unit-tests
+            image: registry.access.redhat.com/ubi8/go-toolset:1.20.10-3
+            securityContext:
+              runAsUser: 0
+            workingDir: /var/workdir/source
+            script: |
+              #!/bin/bash
+              set -euo pipefail
+
+              export SEALIGHTS_TOKEN="$(cat /usr/local/sealights-credentials/token)"
+              make test
     - name: prefetch-dependencies
       params:
       - name: input
