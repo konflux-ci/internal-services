@@ -1,6 +1,6 @@
 module github.com/konflux-ci/internal-services
 
-go 1.18
+go 1.22.9
 
 require (
 	github.com/go-logr/logr v1.4.2
