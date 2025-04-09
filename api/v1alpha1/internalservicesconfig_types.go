@@ -25,7 +25,7 @@ const InternalServicesConfigResourceName string = "config"
 // InternalServicesConfigSpec defines the desired state of InternalServicesConfig.
 type InternalServicesConfigSpec struct {
 	// AllowList is the list of remote namespaces that are allowed to execute InternalRequests
-	// +required
+	// +optional
 	AllowList []string `json:"allowList,omitempty"`
 
 	// Debug sets the operator to run in debug mode. In this mode, PipelineRuns and PVCs will not be removed
