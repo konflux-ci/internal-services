@@ -93,6 +93,40 @@ var _ = Describe("Pipeline", func() {
 		})
 	})
 
+	When("GetPipelineNameFromGitResolver method is called", func() {
+		It("should return the empty string if there is no pathInRepo parameter", func() {
+			parameterizedPipeline := ParameterizedPipeline{}
+			parameterizedPipeline.Params = []Param{
+				{Name: "parameter1", Value: "value1"},
+			}
+
+			name := parameterizedPipeline.GetPipelineNameFromGitResolver()
+			Expect(name).To(Equal(""))
+		})
+
+		It("should return the proper name when passed a nested yaml", func() {
+			parameterizedPipeline := ParameterizedPipeline{}
+			parameterizedPipeline.Params = []Param{
+				{Name: "parameter1", Value: "value1"},
+				{Name: "pathInRepo", Value: "pipelines/internal/my-pipeline/my-pipeline.yaml"},
+			}
+
+			name := parameterizedPipeline.GetPipelineNameFromGitResolver()
+			Expect(name).To(Equal("my-pipeline"))
+		})
+
+		It("should return the proper name when passed just a filename", func() {
+			parameterizedPipeline := ParameterizedPipeline{}
+			parameterizedPipeline.Params = []Param{
+				{Name: "parameter1", Value: "value1"},
+				{Name: "pathInRepo", Value: "my-pipeline.yaml"},
+			}
+
+			name := parameterizedPipeline.GetPipelineNameFromGitResolver()
+			Expect(name).To(Equal("my-pipeline"))
+		})
+	})
+
 	When("GetTektonParams method is called", func() {
 		It("should return a tekton Param list", func() {
 			parameterizedPipeline := ParameterizedPipeline{}

@@ -16,7 +16,12 @@ limitations under the License.
 
 package utils
 
-import tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+import (
+	"path/filepath"
+	"strings"
+
+	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+)
 
 // Param defines the parameters for a given resolver in PipelineRef
 type Param struct {
@@ -86,6 +91,21 @@ func (pr *PipelineRef) ToTektonPipelineRef() *tektonv1.PipelineRef {
 	}
 
 	return tektonPipelineRef
+}
+
+// GetPipelineNameFromGitResolver returns the filename as a string from the pathInRepo
+// param used in a git resolver. This is commonly the pipeline name.
+func (prp *ParameterizedPipeline) GetPipelineNameFromGitResolver() string {
+	name := ""
+
+	for _, param := range prp.Params {
+		if param.Name == "pathInRepo" {
+			filename := filepath.Base(param.Value)
+			name = strings.TrimSuffix(filename, filepath.Ext(filename))
+		}
+	}
+
+	return name
 }
 
 // GetTektonParams returns the ParameterizedPipeline []Param as []tektonv1.Param.

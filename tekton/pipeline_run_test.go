@@ -290,13 +290,22 @@ var _ = Describe("PipelineRun", Ordered, func() {
 	})
 
 	createResources = func() {
+		parameterizedPipeline := utils.ParameterizedPipeline{}
+		parameterizedPipeline.PipelineRef = utils.PipelineRef{
+			Resolver: "git",
+			Params: []utils.Param{
+				{Name: "url", Value: "my-url"},
+				{Name: "revision", Value: "my-revision"},
+				{Name: "pathInRepo", Value: "my-path"},
+			},
+		}
 		internalRequest = &v1alpha1.InternalRequest{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "request",
 				Namespace: "default",
 			},
 			Spec: v1alpha1.InternalRequestSpec{
-				Request: "request",
+				Pipeline: &parameterizedPipeline,
 				Params: map[string]string{
 					"foo": "bar",
 					"baz": "qux",
