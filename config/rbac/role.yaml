@@ -2,13 +2,13 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  creationTimestamp: null
   name: internal-services-manager-role
 rules:
 - apiGroups:
   - appstudio.redhat.com
   resources:
   - internalrequests
+  - internalservicesconfigs
   verbs:
   - create
   - delete
@@ -31,18 +31,6 @@ rules:
   - get
   - patch
   - update
-- apiGroups:
-  - appstudio.redhat.com
-  resources:
-  - internalservicesconfigs
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
 - apiGroups:
   - tekton.dev
   resources:
