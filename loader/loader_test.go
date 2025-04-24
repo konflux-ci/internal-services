@@ -3,6 +3,7 @@ package loader
 import (
 	"github.com/konflux-ci/internal-services/api/v1alpha1"
 	"github.com/konflux-ci/internal-services/tekton"
+	"github.com/konflux-ci/internal-services/tekton/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -72,13 +73,22 @@ var _ = Describe("Loader", Ordered, func() {
 	})
 
 	createResources = func() {
+		parameterizedPipeline := utils.ParameterizedPipeline{}
+		parameterizedPipeline.PipelineRef = utils.PipelineRef{
+			Resolver: "git",
+			Params: []utils.Param{
+				{Name: "url", Value: "my-url"},
+				{Name: "revision", Value: "my-revision"},
+				{Name: "pathInRepo", Value: "my-path"},
+			},
+		}
 		internalRequest = &v1alpha1.InternalRequest{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "request",
 				Namespace: "default",
 			},
 			Spec: v1alpha1.InternalRequestSpec{
-				Request: "request",
+				Pipeline: &parameterizedPipeline,
 			},
 		}
 		Expect(k8sClient.Create(ctx, internalRequest)).To(Succeed())

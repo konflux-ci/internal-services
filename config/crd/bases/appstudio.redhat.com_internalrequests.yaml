@@ -128,11 +128,6 @@ spec:
                 required:
                 - pipelineRef
                 type: object
-              request:
-                description: Request is the name of the internal internalrequest which
-                  will be translated into a Tekton pipeline
-                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
-                type: string
               serviceAccount:
                 description: |-
                   ServiceAccount defines the serviceAccount to use in the InternalRequest PipelineRun execution.
@@ -157,6 +152,8 @@ spec:
                       tasks
                     type: string
                 type: object
+            required:
+            - pipeline
             type: object
           status:
             description: InternalRequestStatus defines the observed state of InternalRequest.

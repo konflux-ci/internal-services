@@ -80,30 +80,6 @@ func (a *Adapter) EnsureConfigIsLoaded() (controller.OperationResult, error) {
 	return controller.ContinueProcessing()
 }
 
-// EnsurePipelineExists is an operation that will ensure the Pipeline referenced by the InternalRequest exists and add it
-// to the adapter, so it can be used in other operations. If the Pipeline doesn't exist, the InternalRequest will be
-// marked as failed. If a resolver is being used, this operation does nothing. We will use resolvers only going forward,
-// so this operation will be removed in a future commit.
-//
-// Note: This operation sets values in the adapter to be used by other operations, so it should be always enabled.
-func (a *Adapter) EnsurePipelineExists() (controller.OperationResult, error) {
-	if a.internalRequest.Spec.Request == "" {
-		return controller.ContinueProcessing()
-	}
-
-	var err error
-	a.internalRequestPipeline, err = a.loader.GetInternalRequestPipeline(a.ctx, a.internalClient,
-		a.internalRequest.Spec.Request, a.internalServicesConfig.Namespace)
-
-	if err != nil {
-		patch := client.MergeFrom(a.internalRequest.DeepCopy())
-		a.internalRequest.MarkRejected(fmt.Sprintf("No endpoint to handle '%s' requests", a.internalRequest.Spec.Request))
-		return controller.RequeueOnErrorOrStop(a.client.Status().Patch(a.ctx, a.internalRequest, patch))
-	}
-
-	return controller.ContinueProcessing()
-}
-
 // EnsurePipelineRunIsCreated is an operation that will ensure that the InternalRequest is handled by creating a new
 // PipelineRun for the Pipeline referenced in the Request field.
 func (a *Adapter) EnsurePipelineRunIsCreated() (controller.OperationResult, error) {
@@ -195,23 +171,11 @@ func (a *Adapter) EnsureStatusIsTracked() (controller.OperationResult, error) {
 // include owner annotations, so it triggers InternalRequest reconciles whenever it changes. The Pipeline information
 // and its parameters will be extracted from the InternalRequest.
 func (a *Adapter) createInternalRequestPipelineRun() (*v1beta1.PipelineRun, error) {
-	var pipelineRun *v1beta1.PipelineRun
-	// Once our tasks are migrated to use Spec.Pipeline instead of Spec.Request, the first part of
-	// this if statement will go away and only pipelineRef InternalRequests will be supported.
-	// pipelineRef still allows the use of cluster resolvers, so we don't lose anything.
-	if a.internalRequestPipeline != nil {
-		pipelineRun = tekton.NewInternalRequestPipelineRun(a.internalServicesConfig).
-			WithInternalRequest(a.internalRequest).
-			WithOwner(a.internalRequest).
-			WithPipeline(a.internalRequestPipeline, a.internalServicesConfig).
-			AsPipelineRun()
-	} else {
-		pipelineRun = tekton.NewInternalRequestPipelineRun(a.internalServicesConfig).
-			WithInternalRequest(a.internalRequest).
-			WithOwner(a.internalRequest).
-			WithPipelineRef(a.internalRequest, a.internalServicesConfig).
-			AsPipelineRun()
-	}
+	pipelineRun := tekton.NewInternalRequestPipelineRun(a.internalServicesConfig).
+		WithInternalRequest(a.internalRequest).
+		WithOwner(a.internalRequest).
+		WithPipelineRef(a.internalRequest, a.internalServicesConfig).
+		AsPipelineRun()
 
 	err := a.internalClient.Create(a.ctx, pipelineRun)
 	if err != nil {

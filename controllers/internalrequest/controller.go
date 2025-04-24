@@ -76,7 +76,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		adapter.EnsureRequestINotCompleted,
 		adapter.EnsureConfigIsLoaded, // This operation sets the config in the adapter to be used in other operations.
 		adapter.EnsureRequestIsAllowed,
-		adapter.EnsurePipelineExists, // This operation sets the pipeline in the adapter to be used in other operations.
 		adapter.EnsurePipelineRunIsCreated,
 		adapter.EnsureStatusIsTracked,
 		adapter.EnsurePipelineRunIsDeleted,

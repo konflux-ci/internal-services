@@ -30,14 +30,9 @@ import (
 
 // InternalRequestSpec defines the desired state of InternalRequest.
 type InternalRequestSpec struct {
-	// Request is the name of the internal internalrequest which will be translated into a Tekton pipeline
-	// +kubebuilder:validation:Pattern=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
-	// +optional
-	Request string `json:"request,omitempty"`
-
 	// Pipeline contains the details of the pipeline to execute for the InternalRequest
-	// +optional
-	Pipeline *tektonutils.ParameterizedPipeline `json:"pipeline,omitempty"`
+	// +required
+	Pipeline *tektonutils.ParameterizedPipeline `json:"pipeline"`
 
 	// Params is the list of optional parameters to pass to the Tekton pipeline
 	// kubebuilder:pruning:PreserveUnknownFields
@@ -136,7 +131,11 @@ func (ir *InternalRequest) MarkFailed(message string) {
 	ir.Status.CompletionTime = &metav1.Time{Time: time.Now()}
 	conditions.SetConditionWithMessage(&ir.Status.Conditions, SucceededConditionType, metav1.ConditionFalse, FailedReason, message)
 
-	go metrics.RegisterCompletedInternalRequest(ir.Spec.Request, ir.Namespace, FailedReason.String(),
+	pipelineName := ""
+	if ir.Spec.Pipeline != nil {
+		pipelineName = ir.Spec.Pipeline.GetPipelineNameFromGitResolver()
+	}
+	go metrics.RegisterCompletedInternalRequest(pipelineName, ir.Namespace, FailedReason.String(),
 		ir.Status.StartTime, ir.Status.CompletionTime, false)
 }
 
@@ -172,7 +171,11 @@ func (ir *InternalRequest) MarkSucceeded() {
 	ir.Status.CompletionTime = &metav1.Time{Time: time.Now()}
 	conditions.SetCondition(&ir.Status.Conditions, SucceededConditionType, metav1.ConditionTrue, SucceededReason)
 
-	go metrics.RegisterCompletedInternalRequest(ir.Spec.Request, ir.Namespace, SucceededReason.String(), ir.Status.StartTime, ir.Status.CompletionTime, true)
+	pipelineName := ""
+	if ir.Spec.Pipeline != nil {
+		pipelineName = ir.Spec.Pipeline.GetPipelineNameFromGitResolver()
+	}
+	go metrics.RegisterCompletedInternalRequest(pipelineName, ir.Namespace, SucceededReason.String(), ir.Status.StartTime, ir.Status.CompletionTime, true)
 }
 
 // +kubebuilder:object:root=true
