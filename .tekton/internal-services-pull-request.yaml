@@ -7,8 +7,9 @@ metadata:
     build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch == "main"
-  creationTimestamp: 
+    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
+      == "main"
+  creationTimestamp: null
   labels:
     appstudio.openshift.io/application: internal-services
     appstudio.openshift.io/component: internal-services
@@ -56,11 +57,13 @@ spec:
       name: output-image
       type: string
     - default: .
-      description: Path to the source code of an application's component from where to build image.
+      description: Path to the source code of an application's component from where
+        to build image.
       name: path-context
       type: string
     - default: Dockerfile
-      description: Path to the Dockerfile inside the context specified by parameter path-context
+      description: Path to the Dockerfile inside the context specified by parameter
+        path-context
       name: dockerfile
       type: string
     - default: "false"
@@ -80,7 +83,8 @@ spec:
       name: prefetch-input
       type: string
     - default: ""
-      description: Image tag expiration time, time values could be something like 1h, 2d, 3w for hours, days, and weeks, respectively.
+      description: Image tag expiration time, time values could be something like
+        1h, 2d, 3w for hours, days, and weeks, respectively.
       name: image-expires-after
       type: string
     - default: "true"
@@ -160,8 +164,27 @@ spec:
       - name: basic-auth
         workspace: git-auth
     - name: sealights-go-instrumentation
+      params:
+      - name: SOURCE_ARTIFACT
+        value: $(tasks.clone-repository.results.SOURCE_ARTIFACT)
+      - name: component
+        value: '{{ repo_name }}'
+      - name: branch
+        value: '{{ source_branch }}'
+      - name: revision
+        value: '{{ revision }}'
+      - name: repository-url
+        value: '{{ repo_url }}'
+      - name: pull-request-number
+        value: '{{ pull_request_number }}'
+      - name: target-branch
+        value: '{{ target_branch }}'
+      - name: oci-storage
+        value: $(params.output-image).sealights.git
+      - name: disable-token-save
+        value: "true"
       runAfter:
-        - clone-repository
+      - clone-repository
       taskRef:
         params:
         - name: name
@@ -171,59 +194,44 @@ spec:
         - name: kind
           value: task
         resolver: bundles
-      params:
-        - name: SOURCE_ARTIFACT
-          value: $(tasks.clone-repository.results.SOURCE_ARTIFACT)
-        - name: component
-          value: '{{ repo_name }}'
-        - name: branch
-          value: '{{ source_branch }}'
-        - name: revision
-          value: '{{ revision }}'
-        - name: repository-url
-          value: '{{ repo_url }}'
-        - name: pull-request-number
-          value: '{{ pull_request_number }}'
-        - name: target-branch
-          value: '{{ target_branch }}'
-        - name: oci-storage
-          value: $(params.output-image).sealights.git
-        - name: disable-token-save
-          value: "true"
     - name: sealights-unit-tests
       runAfter:
-        - sealights-go-instrumentation
+      - sealights-go-instrumentation
       taskSpec:
-        volumes:
-          - name: sealights-credentials
-            secret:
-              secretName: sealights-credentials
-          - name: workdir
-            emptyDir: {}
+        metadata: {}
+        spec: null
         stepTemplate:
+          computeResources: {}
           volumeMounts:
-            - mountPath: /var/workdir
-              name: workdir
-            - name: sealights-credentials
-              mountPath: /usr/local/sealights-credentials
+          - mountPath: /var/workdir
+            name: workdir
+          - mountPath: /usr/local/sealights-credentials
+            name: sealights-credentials
         steps:
-          - name: use-trusted-artifact
-            image: quay.io/redhat-appstudio/build-trusted-artifacts:latest@sha256:9b180776a41d9a22a1c51539f1647c60defbbd55b44bbebdd4130e33512d8b0d
-            args:
-              - use
-              - $(tasks.sealights-go-instrumentation.results.SOURCE_ARTIFACT)=/var/workdir/source
-          - name: unit-tests
-            image: registry.access.redhat.com/ubi9/go-toolset:9.5-1743582279
-            securityContext:
-              runAsUser: 0
-            workingDir: /var/workdir/source
-            script: |
-              #!/bin/bash
-              set -euo pipefail
+        - args:
+          - use
+          - $(tasks.sealights-go-instrumentation.results.SOURCE_ARTIFACT)=/var/workdir/source
+          computeResources: {}
+          image: quay.io/redhat-appstudio/build-trusted-artifacts:latest@sha256:9b180776a41d9a22a1c51539f1647c60defbbd55b44bbebdd4130e33512d8b0d
+          name: use-trusted-artifact
+        - computeResources: {}
+          image: registry.access.redhat.com/ubi9/go-toolset:9.5-1743582279
+          name: unit-tests
+          script: |
+            #!/bin/bash
+            set -euo pipefail
 
-              export SEALIGHTS_TOKEN="$(cat /usr/local/sealights-credentials/token)"
-              make test
-
+            export SEALIGHTS_TOKEN="$(cat /usr/local/sealights-credentials/token)"
+            make test
+          securityContext:
+            runAsUser: 0
+          workingDir: /var/workdir/source
+        volumes:
+        - name: sealights-credentials
+          secret:
+            secretName: sealights-credentials
+        - emptyDir: {}
+          name: workdir
     - name: prefetch-dependencies
       params:
       - name: input
@@ -235,7 +243,7 @@ spec:
       - name: ociArtifactExpiresAfter
         value: $(params.image-expires-after)
       runAfter:
-      - sealights-go-instrumentation 
+      - sealights-go-instrumentation
       taskRef:
         params:
         - name: name
@@ -464,7 +472,6 @@ spec:
         operator: in
         values:
         - "false"
-      workspaces: []
     - name: sast-shell-check
       params:
       - name: image-digest
@@ -491,7 +498,6 @@ spec:
         operator: in
         values:
         - "false"
-      workspaces: []
     - name: push-dockerfile
       params:
       - name: IMAGE
@@ -522,7 +528,7 @@ spec:
       - name: image-digest
         value: $(tasks.build-container.results.IMAGE_DIGEST)
       runAfter:
-        - build-container
+      - build-container
       taskRef:
         params:
         - name: name
@@ -535,7 +541,8 @@ spec:
     workspaces:
     - name: git-auth
       optional: true
-  taskRunTemplate: {}
+  taskRunTemplate:
+    serviceAccountName: build-pipeline-internal-services
   workspaces:
   - name: git-auth
     secret:
