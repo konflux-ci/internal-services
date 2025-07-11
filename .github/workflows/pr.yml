@@ -13,7 +13,7 @@ jobs:
       OPERATOR_SDK_VERSION: v1.22.0
     steps:
       - name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
       - name: Check out code into the Go module directory
