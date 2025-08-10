@@ -1,6 +1,8 @@
 module github.com/konflux-ci/internal-services
 
-go 1.22.9
+go 1.23.0
+
+toolchain go1.24.4
 
 require (
 	github.com/go-logr/logr v1.4.2
@@ -71,7 +73,7 @@ require (
 	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/term v0.27.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
-	golang.org/x/time v0.3.0 // indirect
+	golang.org/x/time v0.12.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/api v0.100.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
