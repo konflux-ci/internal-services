@@ -104,7 +104,7 @@ For RHEL users: Extra steps might be required ([Kind - Rootless](https://kind.si
 
 ### Installing `kind`
 ```
-$ go install sigs.k8s.io/kind@v0.19.0
+$ go install sigs.k8s.io/kind@v0.29.0
 ``` 
 
 ### Installing `kubectl`
@@ -225,7 +225,12 @@ kind: InternalRequest
 metadata:
   name: "myrequest"
 spec:
-  request: "sample"
+  pipeline: 
+    pipelineRef:
+      resolver: "cluster"
+      params:
+        - name: "name"
+          value: "sample"
   params:
     foo: bar
     baz: qux
@@ -250,7 +255,12 @@ spec:
   params:
     foo: bar
     baz: qux
-  request: sample
+  pipeline: 
+    pipelineRef:
+      resolver: "cluster"
+      params:
+        - name: "name"
+          value: "sample"
 status:
   completionTime: "2023-01-12T15:34:12Z"
   conditions:
