@@ -1,0 +1,572 @@
+---
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: simple-e2e-pipeline
+spec:
+  description: |-
+    This pipeline creates two kind clusters to run the test described in the README.md. It will install
+    tekton on each then create a simple InternalRequest to ensure that the status is updated successfully.
+  params:
+    - name: SNAPSHOT
+      description: 'The JSON string representing the snapshot of the application under test.'
+      default: '{"components": [{"name":"test-app", "containerImage": "quay.io/example/repo:latest"}]}'
+      type: string
+    - name: test-name
+      description: 'The name of the test corresponding to a defined Konflux integration test.'
+      default: ''
+      type: string
+    - name: ocp-version
+      description: 'The OpenShift version to use for the ephemeral cluster deployment.'
+      type: string
+    - name: test-event-type
+      description: 'Indicates if the test is triggered by a Pull Request or Push event.'
+      default: 'none'
+    - name: konflux-test-infra-secret
+      description: The name of the secret where testing infrastructure credentials are stored.
+      type: string
+    - name: cloud-credential-key
+      description: The key within the konflux-test-infra secret where AWS ROSA configuration details are stored.
+      type: string
+    - name: replicas
+      description: 'The number of replicas for the cluster nodes.'
+      type: string
+    - name: machine-type
+      description: 'The type of machine to use for the cluster nodes.'
+      type: string
+    - name: quality-dashboard-api
+      default: 'none'
+      description: 'Contains the url of the backend to send metrics for quality purposes.'
+    - name: oci-container-repo
+      default: 'quay.io/konflux-test-storage/konflux-team/internal-services'
+      description: The ORAS container used to store all test artifacts.
+  tasks:
+    - name: test-metadata
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/konflux-ci/tekton-integration-catalog.git
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: common/tasks/test-metadata/0.1/test-metadata.yaml
+      params:
+        - name: SNAPSHOT
+          value: $(params.SNAPSHOT)
+        - name: test-name
+          value: $(context.pipelineRun.name)
+    - name: check-if-test-relevant
+      runAfter:
+        - test-metadata
+      params:
+        - name: SNAPSHOT
+          value: $(params.SNAPSHOT)
+        - name: git-repo
+          value: "$(tasks.test-metadata.results.git-repo)"
+        - name: git-org
+          value: "$(tasks.test-metadata.results.git-org)"
+        - name: git-revision
+          value: "$(tasks.test-metadata.results.git-revision)"
+      taskSpec:
+        params:
+          - name: SNAPSHOT
+            type: string
+          - name: git-repo
+            type: string
+          - name: git-org
+            type: string
+          - name: git-revision
+            type: string
+        results:
+          - name: testRelevant
+            type: string
+        steps:
+          - name: check-if-test-relevant
+            image: quay.io/konflux-ci/release-service-utils:56d2d170ccaf0db49a49df3b978c602ee8d9e0fa
+            env:
+              - name: SNAPSHOT
+                value: $(params.SNAPSHOT)
+              - name: REPO
+                value: $(params.git-repo)
+              - name: ORG
+                value: $(params.git-org)
+              - name: REVISION
+                value: $(params.git-revision)
+            script: |
+              #!/usr/bin/env bash
+              set -ex
+
+              echo -n "false" > $(results.testRelevant.path)
+
+              if [ $(jq '.components | length'  <<< "${SNAPSHOT}") -ne 1 ] ; then
+                  echo "Error: snapshot components array not of length 1"
+                  exit 1
+              fi
+
+              curl -s "https://api.github.com/repos/${ORG}/${REPO}/commits/${REVISION}" | \
+                jq -r '.files[] | "\(.status) \(.filename)"' | \
+                while read status filename; do
+                    # Skip deleted files
+                    if [[ "$status" == "deleted" ]]; then
+                        continue
+                    fi
+                    
+                    # Check if file has .md suffix or is in .github directory
+                    if [[ "$filename" != *.md ]] && [[ "$filename" != .github/* ]]; then
+                        echo -n "true" > $(results.testRelevant.path)
+                        exit 0 # No need to check the rest
+                    fi
+                done
+    - name: provision-remote-kind-cluster
+      runAfter:
+        - check-if-test-relevant
+      when:
+        - input: "$(tasks.check-if-test-relevant.results.testRelevant)"
+          operator: in
+          values: ["true"]
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/konflux-ci/tekton-integration-catalog
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: tasks/mapt-oci/kind-aws-spot/provision/0.2/kind-aws-provision.yaml
+      params:
+        - name: secret-aws-credentials
+          value: mapt-kind-secret
+        - name: cluster-access-secret-name
+          value: kfg-$(context.pipelineRun.name)-remote
+        - name: id
+          value: $(context.pipelineRun.name)-remote
+        - name: tags
+          value: env=konflux,user=internal-services
+        - name: debug
+          value: 'false'
+        - name: ownerKind
+          value: PipelineRun
+        - name: ownerName
+          value: $(context.pipelineRun.name)
+        - name: ownerUid
+          value: $(context.pipelineRun.uid)
+        - name: oci-ref
+          value: $(params.oci-container-repo):$(context.pipelineRun.name)-remote
+        - name: credentials-secret-name
+          value: $(params.konflux-test-infra-secret)
+    - name: provision-local-kind-cluster
+      runAfter:
+        - check-if-test-relevant
+      when:
+        - input: "$(tasks.check-if-test-relevant.results.testRelevant)"
+          operator: in
+          values: ["true"]
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/konflux-ci/tekton-integration-catalog
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: tasks/mapt-oci/kind-aws-spot/provision/0.2/kind-aws-provision.yaml
+      params:
+        - name: secret-aws-credentials
+          value: mapt-kind-secret
+        - name: cluster-access-secret-name
+          value: kfg-$(context.pipelineRun.name)-local
+        - name: id
+          value: $(context.pipelineRun.name)-local
+        - name: tags
+          value: env=konflux,user=internal-services
+        - name: debug
+          value: 'false'
+        - name: ownerKind
+          value: PipelineRun
+        - name: ownerName
+          value: $(context.pipelineRun.name)
+        - name: ownerUid
+          value: $(context.pipelineRun.uid)
+        - name: oci-ref
+          value: $(params.oci-container-repo):$(context.pipelineRun.name)-local
+        - name: credentials-secret-name
+          value: $(params.konflux-test-infra-secret)
+    - name: setup-remote-cluster
+      runAfter:
+        - provision-remote-kind-cluster
+      when:
+        - input: "$(tasks.check-if-test-relevant.results.testRelevant)"
+          operator: in
+          values: ["true"]
+      params:
+        - name: git-repo
+          value: "$(tasks.test-metadata.results.source-repo-url)"
+        - name: git-revision
+          value: "$(tasks.test-metadata.results.git-revision)"
+        - name: cluster-access-secret
+          value: kfg-$(context.pipelineRun.name)-remote
+      taskSpec:
+        params:
+          - name: git-repo
+            type: string
+          - name: git-revision
+            type: string
+          - name: cluster-access-secret
+            type: string
+        volumes:
+          - name: credentials
+            secret:
+              secretName: $(params.cluster-access-secret)
+        steps:
+          - name: setup-cluster
+            image: registry.access.redhat.com/ubi9/go-toolset:9.6-1753853351
+            env:
+              - name: REPO
+                value: $(params.git-repo)
+              - name: REVISION
+                value: $(params.git-revision)
+              - name: KUBECONFIG
+                value: '/credentials/kubeconfig'
+            volumeMounts:
+              - name: credentials
+                mountPath: /credentials
+            script: |
+              #!/usr/bin/env bash
+              set -ex
+
+              # Install kubectl into the image and make it executable
+              curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+              chmod +x kubectl
+              export PATH=$PATH:~
+
+              # Install tekton
+              kubectl apply --filename https://storage.googleapis.com/tekton-releases/pipeline/latest/release.yaml
+
+              git clone "$REPO" repo
+              cd repo
+              git reset --hard "$REVISION"
+              # Install the CRDs
+              make install
+    - name: setup-local-cluster-and-start-operator
+      runAfter:
+        - provision-local-kind-cluster
+        - setup-remote-cluster
+      when:
+        - input: "$(tasks.check-if-test-relevant.results.testRelevant)"
+          operator: in
+          values: ["true"]
+      params:
+        - name: git-repo
+          value: "$(tasks.test-metadata.results.source-repo-url)"
+        - name: git-revision
+          value: "$(tasks.test-metadata.results.git-revision)"
+        - name: remote-cluster-access-secret
+          value: kfg-$(context.pipelineRun.name)-remote
+        - name: local-cluster-access-secret
+          value: kfg-$(context.pipelineRun.name)-local
+      taskSpec:
+        params:
+          - name: git-repo
+            type: string
+          - name: git-revision
+            type: string
+          - name: remote-cluster-access-secret
+            type: string
+          - name: local-cluster-access-secret
+            type: string
+        volumes:
+          - name: remote-credentials
+            secret:
+              secretName: $(params.remote-cluster-access-secret)
+          - name: local-credentials
+            secret:
+              secretName: $(params.local-cluster-access-secret)
+        steps:
+          - name: setup-cluster-and-start-operator
+            image: registry.access.redhat.com/ubi9/go-toolset:9.6-1753853351
+            env:
+              - name: REPO
+                value: $(params.git-repo)
+              - name: REVISION
+                value: $(params.git-revision)
+              - name: KUBECONFIG
+                value: '/local-credentials/kubeconfig'
+              - name: REMOTE_KUBECONFIG
+                value: '/remote-credentials/kubeconfig'
+            volumeMounts:
+              - name: local-credentials
+                mountPath: /local-credentials
+              - name: remote-credentials
+                mountPath: /remote-credentials
+            script: |
+              #!/usr/bin/env bash
+              set -x
+
+              # Install kubectl into the image and make it executable
+              curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+              chmod +x kubectl
+              export PATH=$PATH:~
+
+              git clone "$REPO" repo
+              cd repo
+              git reset --hard "$REVISION"
+              # Install the CRDs
+              make install
+              # Build the manager binary
+              make build
+
+              # Install tekton
+              kubectl apply --filename https://storage.googleapis.com/tekton-releases/pipeline/latest/release.yaml
+
+              # Create the InternalServicesConfig
+              cat > config.yaml << EOF
+              apiVersion: appstudio.redhat.com/v1alpha1
+              kind: InternalServicesConfig
+              metadata:
+                name: "config"
+                namespace: "default"
+              spec:
+                allowList:
+                  - default
+                debug: true
+                volumeClaim:
+                  name: workspace
+                  size: 1Gi
+              EOF
+              kubectl create -f config.yaml
+
+              # Create the local Pipeline that will be executed for the InternalRequest
+              cat > pipeline.yaml << EOF
+              ---
+              apiVersion: tekton.dev/v1
+              kind: Pipeline
+              metadata:
+                name: sample
+                namespace: "default"
+                labels:
+                  app.kubernetes.io/version: "1.0.0"
+                annotations:
+                  tekton.dev/pipelines.minVersion: "0.12.1"
+                  tekton.dev/tags: release
+              spec:
+                tasks:
+                  - name: sample
+                    taskSpec:
+                      steps:
+                        - name: echo
+                          image: quay.io/konflux-ci/release-service-utils:56d2d170ccaf0db49a49df3b978c602ee8d9e0fa
+                          script: |
+                            #!/usr/bin/env sh
+                            set -eux
+
+                            echo hello world
+              EOF
+              kubectl create -f pipeline.yaml
+
+              # Start the operator and run it for 5 minutes. The pipeline can't finish until this task completes
+              # The command fails when it completes for whatever reason, so || true
+              timeout 300s go run main.go --remote-cluster-config-file="$REMOTE_KUBECONFIG" || true
+    - name: create-internalrequest-on-remote-cluster
+      runAfter:
+        - setup-remote-cluster
+      when:
+        - input: "$(tasks.check-if-test-relevant.results.testRelevant)"
+          operator: in
+          values: ["true"]
+      params:
+        - name: cluster-access-secret
+          value: kfg-$(context.pipelineRun.name)-remote
+      taskSpec:
+        params:
+          - name: cluster-access-secret
+            type: string
+        volumes:
+          - name: credentials
+            secret:
+              secretName: $(params.cluster-access-secret)
+        steps:
+          - name: create-internal-request
+            image: registry.access.redhat.com/ubi9/go-toolset:9.6-1753853351
+            env:
+              - name: KUBECONFIG
+                value: '/credentials/kubeconfig'
+            volumeMounts:
+              - name: credentials
+                mountPath: /credentials
+            script: |
+              #!/usr/bin/env bash
+              set -ex
+
+              # Install kubectl into the image and make it executable
+              curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+              chmod +x kubectl
+              export PATH=$PATH:~
+
+              # Create the InternalRequest
+              cat > internal-request.yaml << EOF
+              apiVersion: appstudio.redhat.com/v1alpha1
+              kind: InternalRequest
+              metadata:
+                name: "myrequest"
+                namespace: "default"
+              spec:
+                pipeline:
+                  pipelineRef:
+                    resolver: "cluster"
+                    params:
+                      - name: "name"
+                        value: "sample"
+              EOF
+              kubectl create -f internal-request.yaml
+
+              # Check that the Status field was properly updated. Check every 5 seconds for up to 5 minutes
+              for i in $(seq 1 60); do
+                  REASON=$(kubectl get internalrequest myrequest -n default -o jsonpath='{.status.conditions[0].reason}')
+                  if [ "$REASON" = "Succeeded" ]; then
+                      exit 0
+                  fi
+                  echo "InternalRequest not yet marked as Succeeded. Printing current CR for debugging:"
+                  kubectl get internalrequest myrequest -n default -o yaml
+                  sleep 5
+              done
+              # Reason was never Succeeded, so fail
+              exit 1
+  finally:
+    - name: deprovision-local-kind-cluster
+      when:
+        - input: "$(tasks.check-if-test-relevant.results.testRelevant)"
+          operator: in
+          values: ["true"]
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/konflux-ci/tekton-integration-catalog
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: tasks/mapt-oci/kind-aws-spot/deprovision/0.1/kind-aws-deprovision.yaml
+      params:
+        - name: secret-aws-credentials
+          value: mapt-kind-secret
+        - name: id
+          value: $(context.pipelineRun.name)-local
+        - name: cluster-access-secret
+          value: kfg-$(context.pipelineRun.name)-local
+        - name: oci-container
+          value: $(params.oci-container-repo):$(context.pipelineRun.name)-local
+        - name: oci-credentials
+          value: konflux-test-infra
+    - name: deprovision-remote-kind-cluster
+      when:
+        - input: "$(tasks.check-if-test-relevant.results.testRelevant)"
+          operator: in
+          values: ["true"]
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/konflux-ci/tekton-integration-catalog
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: tasks/mapt-oci/kind-aws-spot/deprovision/0.1/kind-aws-deprovision.yaml
+      params:
+        - name: secret-aws-credentials
+          value: mapt-kind-secret
+        - name: id
+          value: $(context.pipelineRun.name)-remote
+        - name: cluster-access-secret
+          value: kfg-$(context.pipelineRun.name)-remote
+        - name: oci-container
+          value: $(params.oci-container-repo):$(context.pipelineRun.name)-remote
+        - name: oci-credentials
+          value: konflux-test-infra
+    - name: pull-request-status-message
+      when:
+        - input: "$(tasks.check-if-test-relevant.results.testRelevant)"
+          operator: in
+          values: ["true"]
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/konflux-ci/tekton-integration-catalog.git
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: common/tasks/pull-request-comment/0.1/pull-request-comment.yaml
+      params:
+        - name: test-name
+          value: "$(context.pipelineRun.name)"
+        - name: oci-container
+          value: "$(params.oci-container-repo):$(context.pipelineRun.name)-local"
+        - name: pipeline-aggregate-status
+          value: "$(tasks.status)"
+        - name: pull-request-author
+          value: "$(tasks.test-metadata.results.pull-request-author)"
+        - name: pull-request-number
+          value: "$(tasks.test-metadata.results.pull-request-number)"
+        - name: git-repo
+          value: "$(tasks.test-metadata.results.git-repo)"
+        - name: git-org
+          value: "$(tasks.test-metadata.results.git-org)"
+        - name: git-revision
+          value: "$(tasks.test-metadata.results.git-revision)"
+        - name: junit-report-name
+          value: e2e-report.xml
+        - name: e2e-log-name
+          value: e2e-tests.log
+        - name: cluster-provision-log-name
+          value: cluster-provision.log
+        - name: enable-test-results-analysis
+          value: "true"
+    - name: quality-dashboard-upload
+      when:
+        - input: "$(tasks.check-if-test-relevant.results.testRelevant)"
+          operator: in
+          values: ["true"]
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/konflux-ci/tekton-integration-catalog.git
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: common/tasks/quality-dashboard/0.1/quality-dashboard-upload.yaml
+      params:
+        - name: test-name
+          value: "$(context.pipelineRun.name)"
+        - name: oci-container
+          value: "$(params.oci-container-repo):$(context.pipelineRun.name)-local"
+        - name: quality-dashboard-api
+          value: $(params.quality-dashboard-api)
+        - name: pipeline-aggregate-status
+          value: "$(tasks.status)"
+        - name: test-event-type
+          value: "$(tasks.test-metadata.results.test-event-type)"
+    - name: store-pipeline-status
+      when:
+        - input: "$(tasks.check-if-test-relevant.results.testRelevant)"
+          operator: in
+          values: ["true"]
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/konflux-ci/tekton-integration-catalog.git
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: tasks/store-pipeline-status/0.1/store-pipeline-status.yaml
+      params:
+        - name: oci-ref
+          value: "$(params.oci-container-repo):$(context.pipelineRun.name)-local"
+        - name: credentials-secret-name
+          value: "$(params.konflux-test-infra-secret)"
+        - name: pipelinerun-name
+          value: $(context.pipelineRun.name)
+        - name: pipeline-aggregate-status
+          value: $(tasks.status)
