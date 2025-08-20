@@ -136,11 +136,10 @@ func (a *Adapter) EnsureRequestIsAllowed() (controller.OperationResult, error) {
 		}
 	}
 
-	patch := client.MergeFrom(a.internalRequest.DeepCopy())
 	a.internalRequest.MarkRejected(
 		fmt.Sprintf("the internal request namespace (%s) is not in the allow list", a.internalRequest.Namespace),
 	)
-	return controller.RequeueOnErrorOrStop(a.client.Status().Patch(a.ctx, a.internalRequest, patch))
+	return controller.StopProcessing()
 }
 
 // EnsureRequestINotCompleted is an operation that will stop processing a request if it was completed already.
