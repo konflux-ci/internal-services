@@ -188,7 +188,7 @@ To process a `InternalRequest` the `internal-services-controller` requires a Pip
 In this example the following `sample` Pipeline should exist in the `local` cluster.
 ```
 $ cat > pipeline.yaml <<EOF
-apiVersion: tekton.dev/v1beta1
+apiVersion: tekton.dev/v1
 kind: Pipeline
 metadata:
   name: sample

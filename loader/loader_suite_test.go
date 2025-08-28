@@ -24,7 +24,7 @@ import (
 
 	konfluxciv1alpha1 "github.com/konflux-ci/internal-services/api/v1alpha1"
 	"github.com/konflux-ci/operator-toolkit/test"
-	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -64,7 +65,7 @@ var _ = BeforeSuite(func() {
 			filepath.Join("..", "config", "crd", "bases"),
 			filepath.Join(
 				build.Default.GOPATH,
-				"pkg", "mod", test.GetRelativeDependencyPath("tektoncd/pipeline"), "config",
+				"pkg", "mod", test.GetRelativeDependencyPath("tektoncd/pipeline"), "config", "300-crds",
 			),
 		},
 		ErrorIfCRDPathMissing: true,
@@ -77,14 +78,16 @@ var _ = BeforeSuite(func() {
 	Expect(cfg).NotTo(BeNil())
 
 	Expect(konfluxciv1alpha1.AddToScheme(scheme.Scheme)).To(Succeed())
-	Expect(tektonv1beta1.AddToScheme(scheme.Scheme)).To(Succeed())
+	Expect(tektonv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
 	//+kubebuilder:scaffold:scheme
 
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme:             scheme.Scheme,
-		MetricsBindAddress: "0",
-		LeaderElection:     false,
+		Scheme: scheme.Scheme,
+		Metrics: server.Options{
+			BindAddress: "0", // disables metrics
+		},
+		LeaderElection: false,
 	})
 	Expect(err).NotTo(HaveOccurred())
 

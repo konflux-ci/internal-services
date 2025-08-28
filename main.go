@@ -23,7 +23,7 @@ import (
 	"github.com/konflux-ci/internal-services/metadata"
 	"github.com/konflux-ci/internal-services/tekton"
 	"github.com/konflux-ci/operator-toolkit/controller"
-	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	"go.uber.org/zap/zapcore"
 
 	"k8s.io/apimachinery/pkg/labels"
@@ -31,8 +31,11 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/cluster"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.com/konflux-ci/internal-services/controllers"
 
@@ -57,7 +60,7 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(tektonv1beta1.AddToScheme(scheme))
+	utilruntime.Must(tektonv1.AddToScheme(scheme))
 	utilruntime.Must(konfluxciv1alpha1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
@@ -90,19 +93,23 @@ func main() {
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
+		Scheme: scheme,
+		Metrics: server.Options{
+			BindAddress: metricsAddr,
+		},
+		WebhookServer: webhook.NewServer(webhook.Options{
+			Port: 9443,
+		}),
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       enableLeaderElectionId,
-		NewCache: cache.BuilderWithOptions(cache.Options{
-			SelectorsByObject: cache.SelectorsByObject{
-				&tektonv1beta1.PipelineRun{}: {
+		Cache: cache.Options{
+			ByObject: map[client.Object]cache.ByObject{
+				&tektonv1.PipelineRun{}: {
 					Label: labels.SelectorFromSet(labels.Set{metadata.PipelinesTypeLabel: tekton.PipelineTypeRelease}),
 				},
 			},
-		}),
+		},
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")

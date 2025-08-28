@@ -26,7 +26,7 @@ import (
 	"github.com/konflux-ci/operator-toolkit/controller"
 	"github.com/konflux-ci/operator-toolkit/predicates"
 	libhandler "github.com/operator-framework/operator-lib/handler"
-	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -95,12 +95,14 @@ func (r *Reconciler) Register(mgr ctrl.Manager, log *logr.Logger, remoteCluster 
 			&v1alpha1.InternalRequest{},
 			builder.WithPredicates(predicate.GenerationChangedPredicate{}, predicates.IgnoreAllPredicate{}),
 		).
-		Watches(
-			source.NewKindWithCache(&v1alpha1.InternalRequest{}, remoteCluster.GetCache()),
-			&handler.EnqueueRequestForObject{},
-			builder.WithPredicates(predicate.GenerationChangedPredicate{}, predicates.NewObjectsPredicate{}),
+		WatchesRawSource(
+			source.TypedKind(remoteCluster.GetCache(), &v1alpha1.InternalRequest{},
+				&handler.TypedEnqueueRequestForObject[*v1alpha1.InternalRequest]{},
+				predicates.TypedGenerationChangedPredicate[*v1alpha1.InternalRequest]{},
+				predicates.TypedNewObjectsPredicate[*v1alpha1.InternalRequest]{},
+			),
 		).
-		Watches(&source.Kind{Type: &tektonv1beta1.PipelineRun{}}, &libhandler.EnqueueRequestForAnnotation{
+		Watches(&tektonv1.PipelineRun{}, &libhandler.EnqueueRequestForAnnotation[client.Object]{
 			Type: schema.GroupKind{
 				Kind:  "InternalRequest",
 				Group: "appstudio.redhat.com",

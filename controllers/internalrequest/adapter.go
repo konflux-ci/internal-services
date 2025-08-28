@@ -26,7 +26,7 @@ import (
 	"github.com/konflux-ci/internal-services/loader"
 	"github.com/konflux-ci/internal-services/tekton"
 	"github.com/konflux-ci/operator-toolkit/controller"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"knative.dev/pkg/apis"
@@ -40,7 +40,7 @@ type Adapter struct {
 	ctx                     context.Context
 	internalClient          client.Client
 	internalRequest         *v1alpha1.InternalRequest
-	internalRequestPipeline *v1beta1.Pipeline
+	internalRequestPipeline *tektonv1.Pipeline
 	loader                  loader.ObjectLoader
 	logger                  logr.Logger
 }
@@ -170,7 +170,7 @@ func (a *Adapter) EnsureStatusIsTracked() (controller.OperationResult, error) {
 // createInternalRequestPipelineRun creates and returns a new InternalRequest PipelineRun. The new PipelineRun will
 // include owner annotations, so it triggers InternalRequest reconciles whenever it changes. The Pipeline information
 // and its parameters will be extracted from the InternalRequest.
-func (a *Adapter) createInternalRequestPipelineRun() (*v1beta1.PipelineRun, error) {
+func (a *Adapter) createInternalRequestPipelineRun() (*tektonv1.PipelineRun, error) {
 	pipelineRun := tekton.NewInternalRequestPipelineRun(a.internalServicesConfig).
 		WithInternalRequest(a.internalRequest).
 		WithOwner(a.internalRequest).
@@ -196,7 +196,7 @@ func (a *Adapter) getDefaultInternalServicesConfig(namespace string) *v1alpha1.I
 }
 
 // registerInternalRequestStatus sets the InternalRequest to Running.
-func (a *Adapter) registerInternalRequestStatus(pipelineRun *v1beta1.PipelineRun) error {
+func (a *Adapter) registerInternalRequestStatus(pipelineRun *tektonv1.PipelineRun) error {
 	if pipelineRun == nil {
 		return nil
 	}
@@ -209,7 +209,7 @@ func (a *Adapter) registerInternalRequestStatus(pipelineRun *v1beta1.PipelineRun
 }
 
 // registerInternalRequestPipelineRunStatus keeps track of the PipelineRun status in the InternalRequest being processed.
-func (a *Adapter) registerInternalRequestPipelineRunStatus(pipelineRun *v1beta1.PipelineRun) error {
+func (a *Adapter) registerInternalRequestPipelineRunStatus(pipelineRun *tektonv1.PipelineRun) error {
 	if pipelineRun == nil || !pipelineRun.IsDone() {
 		return nil
 	}

@@ -29,7 +29,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	libhandler "github.com/operator-framework/operator-lib/handler"
-	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -41,7 +41,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		deleteResources func()
 
 		adapter  *Adapter
-		pipeline *tektonv1beta1.Pipeline
+		pipeline *tektonv1.Pipeline
 	)
 
 	Context("When calling NewAdapter", func() {
@@ -287,7 +287,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 			pipelineRun, err := adapter.createInternalRequestPipelineRun()
 			Expect(pipelineRun).NotTo(BeNil())
 			Expect(err).To(BeNil())
-			Expect(pipelineRun.Spec.ServiceAccountName).To(Equal("sample-sa"))
+			Expect(pipelineRun.Spec.TaskRunTemplate.ServiceAccountName).To(Equal("sample-sa"))
 		})
 	})
 
@@ -323,7 +323,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 
 		It("should mark the InternalRequest as running", func() {
 			Expect(adapter.internalRequest.IsRunning()).To(BeFalse())
-			Expect(adapter.registerInternalRequestStatus(&tektonv1beta1.PipelineRun{})).To(BeNil())
+			Expect(adapter.registerInternalRequestStatus(&tektonv1.PipelineRun{})).To(BeNil())
 			Expect(adapter.internalRequest.IsRunning()).To(BeTrue())
 		})
 	})
@@ -343,30 +343,30 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		})
 
 		It("should return nil if the PipelineRun is not done", func() {
-			Expect(adapter.registerInternalRequestPipelineRunStatus(&tektonv1beta1.PipelineRun{})).To(BeNil())
+			Expect(adapter.registerInternalRequestPipelineRunStatus(&tektonv1.PipelineRun{})).To(BeNil())
 		})
 
 		It("should copy the results emitted by a successful PipelineRun", func() {
-			pipelineRun := &tektonv1beta1.PipelineRun{
+			pipelineRun := &tektonv1.PipelineRun{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "pipeline-run",
 					Namespace: "default",
 				},
-				Status: tektonv1beta1.PipelineRunStatus{
-					PipelineRunStatusFields: tektonv1beta1.PipelineRunStatusFields{
-						PipelineResults: []tektonv1beta1.PipelineRunResult{
+				Status: tektonv1.PipelineRunStatus{
+					PipelineRunStatusFields: tektonv1.PipelineRunStatusFields{
+						Results: []tektonv1.PipelineRunResult{
 							{
 								Name: "foo",
-								Value: tektonv1beta1.ResultValue{
+								Value: tektonv1.ResultValue{
 									StringVal: "bar",
-									Type:      tektonv1beta1.ParamTypeString,
+									Type:      tektonv1.ParamTypeString,
 								},
 							},
 							{
 								Name: "baz",
-								Value: tektonv1beta1.ResultValue{
+								Value: tektonv1.ResultValue{
 									StringVal: "qux",
-									Type:      tektonv1beta1.ParamTypeString,
+									Type:      tektonv1.ParamTypeString,
 								},
 							},
 						},
@@ -382,7 +382,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 
 		It("should set the InternalRequest as succeeded if the PipelineRun succeeded", func() {
 			adapter.internalRequest.MarkRunning()
-			pipelineRun := &tektonv1beta1.PipelineRun{}
+			pipelineRun := &tektonv1.PipelineRun{}
 			pipelineRun.Status.MarkSucceeded("", "")
 			Expect(adapter.registerInternalRequestPipelineRunStatus(pipelineRun)).To(BeNil())
 			Expect(adapter.internalRequest.HasSucceeded()).To(BeTrue())
@@ -390,7 +390,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 
 		It("should set the InternalRequest as failed if the PipelineRun failed", func() {
 			adapter.internalRequest.MarkRunning()
-			pipelineRun := &tektonv1beta1.PipelineRun{}
+			pipelineRun := &tektonv1.PipelineRun{}
 			pipelineRun.Status.MarkFailed("", "")
 			Expect(adapter.registerInternalRequestPipelineRunStatus(pipelineRun)).To(BeNil())
 			Expect(adapter.internalRequest.HasSucceeded()).To(BeFalse())
@@ -432,7 +432,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		}
 		Expect(k8sClient.Create(ctx, internalServicesConfig)).To(Succeed())
 
-		pipeline = &tektonv1beta1.Pipeline{
+		pipeline = &tektonv1.Pipeline{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "pipeline",
 				Namespace: "default",
@@ -448,7 +448,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		_ = k8sClient.Delete(ctx, adapter.internalServicesConfig)
 		Expect(k8sClient.Delete(ctx, adapter.internalRequest)).To(Succeed())
 		Expect(k8sClient.Delete(ctx, pipeline)).To(Succeed())
-		err := k8sClient.DeleteAllOf(ctx, &tektonv1beta1.PipelineRun{})
+		err := k8sClient.DeleteAllOf(ctx, &tektonv1.PipelineRun{})
 		Expect(err == nil || errors.IsNotFound(err)).To(BeTrue())
 	}
 
