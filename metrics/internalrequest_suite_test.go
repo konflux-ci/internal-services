@@ -25,6 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -54,8 +55,10 @@ var _ = BeforeSuite(func() {
 	Expect(cfg).NotTo(BeNil())
 
 	k8sManager, _ := ctrl.NewManager(cfg, ctrl.Options{
-		MetricsBindAddress: ":8081",
-		LeaderElection:     false,
+		Metrics: server.Options{
+			BindAddress: ":8081",
+		},
+		LeaderElection: false,
 	})
 
 	go func() {

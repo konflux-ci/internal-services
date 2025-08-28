@@ -22,17 +22,17 @@ import (
 
 	"github.com/konflux-ci/internal-services/api/v1alpha1"
 	libhandler "github.com/operator-framework/operator-lib/handler"
-	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // GetResultsFromPipelineRun returns a map with all the results emitted by the given PipelineRun. Only string results
 // are supported. Other type of results will be silently omitted.
-func GetResultsFromPipelineRun(pipelineRun *tektonv1beta1.PipelineRun) map[string]string {
+func GetResultsFromPipelineRun(pipelineRun *tektonv1.PipelineRun) map[string]string {
 	results := map[string]string{}
 
-	for _, pipelineResult := range pipelineRun.Status.PipelineResults {
-		if pipelineResult.Value.Type == tektonv1beta1.ParamTypeString {
+	for _, pipelineResult := range pipelineRun.Status.Results {
+		if pipelineResult.Value.Type == tektonv1.ParamTypeString {
 			results[pipelineResult.Name] = pipelineResult.Value.StringVal
 		}
 	}
@@ -43,7 +43,7 @@ func GetResultsFromPipelineRun(pipelineRun *tektonv1beta1.PipelineRun) map[strin
 // isInternalRequestsPipelineRun returns a boolean indicating whether the object passed is an internal request
 // PipelineRun or not.
 func isInternalRequestsPipelineRun(object client.Object) bool {
-	_, ok := object.(*tektonv1beta1.PipelineRun)
+	_, ok := object.(*tektonv1.PipelineRun)
 	if !ok {
 		return false
 	}
@@ -60,8 +60,8 @@ func isInternalRequestsPipelineRun(object client.Object) bool {
 // hasPipelineSucceeded returns a boolean that is true if objectOld has not yet succeeded and objectNew has.
 // If any of the objects passed to this function are not a PipelineRun, the function will return false.
 func hasPipelineSucceeded(objectOld, objectNew client.Object) bool {
-	if oldPipelineRun, ok := objectOld.(*tektonv1beta1.PipelineRun); ok {
-		if newPipelineRun, ok := objectNew.(*tektonv1beta1.PipelineRun); ok {
+	if oldPipelineRun, ok := objectOld.(*tektonv1.PipelineRun); ok {
+		if newPipelineRun, ok := objectNew.(*tektonv1.PipelineRun); ok {
 			return !oldPipelineRun.IsDone() && newPipelineRun.IsDone()
 		}
 	}

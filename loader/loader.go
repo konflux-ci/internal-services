@@ -6,14 +6,14 @@ import (
 	"github.com/konflux-ci/internal-services/api/v1alpha1"
 	"github.com/konflux-ci/internal-services/tekton"
 	toolkit "github.com/konflux-ci/operator-toolkit/loader"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type ObjectLoader interface {
 	GetInternalRequest(ctx context.Context, cli client.Client, name, namespace string) (*v1alpha1.InternalRequest, error)
-	GetInternalRequestPipeline(ctx context.Context, cli client.Client, name, namespace string) (*v1beta1.Pipeline, error)
-	GetInternalRequestPipelineRun(ctx context.Context, cli client.Client, internalRequest *v1alpha1.InternalRequest) (*v1beta1.PipelineRun, error)
+	GetInternalRequestPipeline(ctx context.Context, cli client.Client, name, namespace string) (*v1.Pipeline, error)
+	GetInternalRequestPipelineRun(ctx context.Context, cli client.Client, internalRequest *v1alpha1.InternalRequest) (*v1.PipelineRun, error)
 	GetInternalServicesConfig(ctx context.Context, cli client.Client, name, namespace string) (*v1alpha1.InternalServicesConfig, error)
 }
 
@@ -32,15 +32,15 @@ func (l *loader) GetInternalRequest(ctx context.Context, cli client.Client, name
 
 // GetInternalRequestPipeline returns the Pipeline with the given name and namespace. If the Pipeline is not
 // found or the Get operation fails, an error will be returned.
-func (l *loader) GetInternalRequestPipeline(ctx context.Context, cli client.Client, name, namespace string) (*v1beta1.Pipeline, error) {
-	pipeline := &v1beta1.Pipeline{}
+func (l *loader) GetInternalRequestPipeline(ctx context.Context, cli client.Client, name, namespace string) (*v1.Pipeline, error) {
+	pipeline := &v1.Pipeline{}
 	return pipeline, toolkit.GetObject(name, namespace, cli, ctx, pipeline)
 }
 
 // GetInternalRequestPipelineRun returns the PipelineRun referenced by the given InternalRequest or nil if it's not
 // found. In the case the List operation fails, an error will be returned.
-func (l *loader) GetInternalRequestPipelineRun(ctx context.Context, cli client.Client, internalRequest *v1alpha1.InternalRequest) (*v1beta1.PipelineRun, error) {
-	pipelineRuns := &v1beta1.PipelineRunList{}
+func (l *loader) GetInternalRequestPipelineRun(ctx context.Context, cli client.Client, internalRequest *v1alpha1.InternalRequest) (*v1.PipelineRun, error) {
+	pipelineRuns := &v1.PipelineRunList{}
 	err := cli.List(ctx, pipelineRuns,
 		client.Limit(1),
 		client.MatchingLabels{

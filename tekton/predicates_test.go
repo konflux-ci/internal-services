@@ -18,7 +18,7 @@ package tekton
 
 import (
 	libhandler "github.com/operator-framework/operator-lib/handler"
-	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -33,7 +33,7 @@ var _ = Describe("Predicates", func() {
 	Context("when testing InternalRequestPipelineRunSucceededPredicate predicate", func() {
 		instance := InternalRequestPipelineRunSucceededPredicate()
 
-		pipelineRun := &tektonv1beta1.PipelineRun{
+		pipelineRun := &tektonv1.PipelineRun{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "pipeline-run",
 				Namespace: "default",

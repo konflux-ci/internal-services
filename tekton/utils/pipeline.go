@@ -20,7 +20,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 )
 
 // Param defines the parameters for a given resolver in PipelineRef
