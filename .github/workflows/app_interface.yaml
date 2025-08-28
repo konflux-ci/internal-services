@@ -16,11 +16,11 @@ jobs:
       YQ_VERSION: "v4.30.8"
     steps:
       - name: Checkout internal-services repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
         with:
           path: internal-services
       - name: Checkout app-interface repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
         with:
           path: app-interface-deployments
           ref: main
