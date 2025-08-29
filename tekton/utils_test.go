@@ -20,7 +20,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	libhandler "github.com/operator-framework/operator-lib/handler"
-	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	v1 "knative.dev/pkg/apis/duck/v1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,26 +29,26 @@ import (
 var _ = Describe("Utils", func() {
 
 	Context("when calling GetResultsFromPipelineRun", func() {
-		pipelineRun := &tektonv1beta1.PipelineRun{
+		pipelineRun := &tektonv1.PipelineRun{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "pipeline-run",
 				Namespace: "default",
 			},
-			Status: tektonv1beta1.PipelineRunStatus{
-				PipelineRunStatusFields: tektonv1beta1.PipelineRunStatusFields{
-					PipelineResults: []tektonv1beta1.PipelineRunResult{
+			Status: tektonv1.PipelineRunStatus{
+				PipelineRunStatusFields: tektonv1.PipelineRunStatusFields{
+					Results: []tektonv1.PipelineRunResult{
 						{
 							Name: "foo",
-							Value: tektonv1beta1.ResultValue{
+							Value: tektonv1.ResultValue{
 								StringVal: "bar",
-								Type:      tektonv1beta1.ParamTypeString,
+								Type:      tektonv1.ParamTypeString,
 							},
 						},
 						{
 							Name: "baz",
-							Value: tektonv1beta1.ResultValue{
+							Value: tektonv1.ResultValue{
 								StringVal: "qux",
-								Type:      tektonv1beta1.ParamTypeString,
+								Type:      tektonv1.ParamTypeString,
 							},
 						},
 					},
@@ -66,7 +66,7 @@ var _ = Describe("Utils", func() {
 
 	Context("when calling isInternalRequestsPipelineRun", func() {
 		It("returns true if the PipelineRun is owned by an InternalRequest object", func() {
-			pipelineRun := &tektonv1beta1.PipelineRun{
+			pipelineRun := &tektonv1.PipelineRun{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						libhandler.TypeAnnotation: "InternalRequest",
@@ -80,7 +80,7 @@ var _ = Describe("Utils", func() {
 		})
 
 		It("returns false if the PipelineRun is not owned by an InternalRequest object", func() {
-			pipelineRun := &tektonv1beta1.PipelineRun{
+			pipelineRun := &tektonv1.PipelineRun{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						libhandler.TypeAnnotation: "Pod",
@@ -94,7 +94,7 @@ var _ = Describe("Utils", func() {
 		})
 
 		It("returns false if the PipelineRun does not have the owner annotation", func() {
-			pipelineRun := &tektonv1beta1.PipelineRun{
+			pipelineRun := &tektonv1.PipelineRun{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "pipeline-run",
 					Namespace: "default",
@@ -108,12 +108,12 @@ var _ = Describe("Utils", func() {
 	Context("when calling hasPipelineSucceeded", func() {
 		It("returns false if any of the objects is not a PipelineRun", func() {
 			Expect(hasPipelineSucceeded(&v1.Pod{}, &v1.Pod{})).To(BeFalse())
-			Expect(hasPipelineSucceeded(&tektonv1beta1.PipelineRun{}, &v1.Pod{})).To(BeFalse())
-			Expect(hasPipelineSucceeded(&v1.Pod{}, &tektonv1beta1.PipelineRun{})).To(BeFalse())
+			Expect(hasPipelineSucceeded(&tektonv1.PipelineRun{}, &v1.Pod{})).To(BeFalse())
+			Expect(hasPipelineSucceeded(&v1.Pod{}, &tektonv1.PipelineRun{})).To(BeFalse())
 		})
 
 		It("returns true if the event is a change where the PipelineRun status changes to done", func() {
-			oldPipelineRun := &tektonv1beta1.PipelineRun{
+			oldPipelineRun := &tektonv1.PipelineRun{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "pipeline-run",
 					Namespace: "default",
@@ -126,7 +126,7 @@ var _ = Describe("Utils", func() {
 		})
 
 		It("returns false if the PipelineRun event is not a change to done", func() {
-			pipelineRun := &tektonv1beta1.PipelineRun{
+			pipelineRun := &tektonv1.PipelineRun{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "pipeline-run",
 					Namespace: "default",

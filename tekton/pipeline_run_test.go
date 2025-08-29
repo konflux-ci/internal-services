@@ -27,7 +27,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/operator-framework/operator-lib/handler"
-	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -37,7 +37,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 
 		internalServicesConfig *v1alpha1.InternalServicesConfig
 		internalRequest        *v1alpha1.InternalRequest
-		pipeline               *tektonv1beta1.Pipeline
+		pipeline               *tektonv1.Pipeline
 	)
 
 	BeforeAll(func() {
@@ -70,7 +70,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 			newInternalRequestPipelineRun := NewInternalRequestPipelineRun(internalServicesConfig)
 			pipelineRun := newInternalRequestPipelineRun.AsPipelineRun()
 
-			Expect(reflect.TypeOf(pipelineRun)).To(Equal(reflect.TypeOf(&tektonv1beta1.PipelineRun{})))
+			Expect(reflect.TypeOf(pipelineRun)).To(Equal(reflect.TypeOf(&tektonv1.PipelineRun{})))
 			generatedName := strings.ToLower(reflect.TypeOf(v1alpha1.InternalRequest{}).Name()) + "-"
 			Expect(pipelineRun.GenerateName).To(ContainSubstring(generatedName))
 			Expect(pipelineRun.Namespace).To(Equal(internalServicesConfig.Namespace))
@@ -100,7 +100,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 
 			newInternalRequestPipelineRun := NewInternalRequestPipelineRun(internalServicesConfig)
 			newInternalRequestPipelineRun.WithInternalRequest(internalRequest)
-			timeouts := &tektonv1beta1.TimeoutFields{
+			timeouts := &tektonv1.TimeoutFields{
 				Pipeline: &metav1.Duration{Duration: 1 * time.Hour},
 				Tasks:    &metav1.Duration{Duration: 1 * time.Hour},
 				Finally:  &metav1.Duration{Duration: 1 * time.Hour},
@@ -113,7 +113,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 			newInternalRequestPipelineRun := NewInternalRequestPipelineRun(internalServicesConfig)
 			newInternalRequestPipelineRun.WithInternalRequest(internalRequest)
 
-			Expect(newInternalRequestPipelineRun.Spec.ServiceAccountName).To(Equal(internalRequest.Spec.ServiceAccount))
+			Expect(newInternalRequestPipelineRun.Spec.TaskRunTemplate.ServiceAccountName).To(Equal(internalRequest.Spec.ServiceAccount))
 		})
 
 		It("should not set the ServiceAccountName for the PipelineRun if none is passed", func() {
@@ -122,7 +122,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 			newInternalRequest.Spec.ServiceAccount = ""
 			newInternalRequestPipelineRun.WithInternalRequest(newInternalRequest)
 
-			Expect(newInternalRequestPipelineRun.Spec.ServiceAccountName).To(Equal(""))
+			Expect(newInternalRequestPipelineRun.Spec.TaskRunTemplate.ServiceAccountName).To(Equal(""))
 		})
 	})
 
@@ -156,13 +156,13 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		})
 
 		It("should not contain a workspace if the Pipeline specify one with a different name from the one in the InternalServicesConfig", func() {
-			newPipeline := &tektonv1beta1.Pipeline{
+			newPipeline := &tektonv1.Pipeline{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "pipeline",
 					Namespace: "default",
 				},
-				Spec: tektonv1beta1.PipelineSpec{
-					Workspaces: []tektonv1beta1.PipelineWorkspaceDeclaration{
+				Spec: tektonv1.PipelineSpec{
+					Workspaces: []tektonv1.PipelineWorkspaceDeclaration{
 						{Name: "foo"},
 					},
 				},
@@ -175,13 +175,13 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		})
 
 		It("should contain a workspace if the Pipeline specify one with the same name seen in the InternalServicesConfig", func() {
-			newPipeline := &tektonv1beta1.Pipeline{
+			newPipeline := &tektonv1.Pipeline{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "pipeline",
 					Namespace: "default",
 				},
-				Spec: tektonv1beta1.PipelineSpec{
-					Workspaces: []tektonv1beta1.PipelineWorkspaceDeclaration{
+				Spec: tektonv1.PipelineSpec{
+					Workspaces: []tektonv1.PipelineWorkspaceDeclaration{
 						{Name: internalServicesConfig.Spec.VolumeClaim.Name},
 					},
 				},
@@ -219,17 +219,17 @@ var _ = Describe("PipelineRun", Ordered, func() {
 			newInternalRequestPipelineRun.WithPipelineRef(internalRequestPipelineRef, internalServicesConfig)
 
 			Expect(newInternalRequestPipelineRun.Spec.PipelineRef).NotTo(BeNil())
-			Expect(newInternalRequestPipelineRun.Spec.PipelineRef.ResolverRef.Params).To(ContainElement(tektonv1beta1.Param{
+			Expect(newInternalRequestPipelineRun.Spec.PipelineRef.ResolverRef.Params).To(ContainElement(tektonv1.Param{
 				Name:  "name",
-				Value: tektonv1beta1.ParamValue{Type: tektonv1beta1.ParamTypeString, StringVal: "my-pipeline"},
+				Value: tektonv1.ParamValue{Type: tektonv1.ParamTypeString, StringVal: "my-pipeline"},
 			}))
-			Expect(newInternalRequestPipelineRun.Spec.PipelineRef.ResolverRef.Params).To(ContainElement(tektonv1beta1.Param{
+			Expect(newInternalRequestPipelineRun.Spec.PipelineRef.ResolverRef.Params).To(ContainElement(tektonv1.Param{
 				Name:  "namespace",
-				Value: tektonv1beta1.ParamValue{Type: tektonv1beta1.ParamTypeString, StringVal: "my-namespace"},
+				Value: tektonv1.ParamValue{Type: tektonv1.ParamTypeString, StringVal: "my-namespace"},
 			}))
-			Expect(newInternalRequestPipelineRun.Spec.PipelineRef.ResolverRef.Params).To(ContainElement(tektonv1beta1.Param{
+			Expect(newInternalRequestPipelineRun.Spec.PipelineRef.ResolverRef.Params).To(ContainElement(tektonv1.Param{
 				Name:  "kind",
-				Value: tektonv1beta1.ParamValue{Type: tektonv1beta1.ParamTypeString, StringVal: "pipeline"},
+				Value: tektonv1.ParamValue{Type: tektonv1.ParamTypeString, StringVal: "pipeline"},
 			}))
 		})
 
@@ -310,7 +310,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 					"foo": "bar",
 					"baz": "qux",
 				},
-				Timeouts: tektonv1beta1.TimeoutFields{
+				Timeouts: tektonv1.TimeoutFields{
 					Pipeline: &metav1.Duration{Duration: 1 * time.Hour},
 					Tasks:    &metav1.Duration{Duration: 1 * time.Hour},
 					Finally:  &metav1.Duration{Duration: 1 * time.Hour},
@@ -333,7 +333,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 			},
 		}
 
-		pipeline = &tektonv1beta1.Pipeline{
+		pipeline = &tektonv1.Pipeline{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "pipeline",
 				Namespace: "default",

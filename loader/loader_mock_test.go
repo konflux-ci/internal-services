@@ -5,7 +5,7 @@ import (
 	toolkit "github.com/konflux-ci/operator-toolkit/loader"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 )
 
 var _ = Describe("Loader Mock", Ordered, func() {
@@ -34,7 +34,7 @@ var _ = Describe("Loader Mock", Ordered, func() {
 
 	Context("When calling GetInternalRequestPipeline", func() {
 		It("returns the resource and error from the context", func() {
-			pipeline := &tektonv1beta1.Pipeline{}
+			pipeline := &tektonv1.Pipeline{}
 			mockContext := toolkit.GetMockedContext(ctx, []toolkit.MockData{
 				{
 					ContextKey: InternalRequestPipelineContextKey,
@@ -49,7 +49,7 @@ var _ = Describe("Loader Mock", Ordered, func() {
 
 	Context("When calling GetInternalRequestPipelineRun", func() {
 		It("returns the resource and error from the context", func() {
-			pipelineRun := &tektonv1beta1.PipelineRun{}
+			pipelineRun := &tektonv1.PipelineRun{}
 			mockContext := toolkit.GetMockedContext(ctx, []toolkit.MockData{
 				{
 					ContextKey: InternalRequestPipelineRunContextKey,

@@ -5,7 +5,7 @@ import (
 
 	"github.com/konflux-ci/internal-services/api/v1alpha1"
 	toolkit "github.com/konflux-ci/operator-toolkit/loader"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -35,19 +35,19 @@ func (l *mockLoader) GetInternalRequest(ctx context.Context, cli client.Client, 
 }
 
 // GetInternalRequestPipeline returns the resource and error passed as values of the context.
-func (l *mockLoader) GetInternalRequestPipeline(ctx context.Context, cli client.Client, name, namespace string) (*v1beta1.Pipeline, error) {
+func (l *mockLoader) GetInternalRequestPipeline(ctx context.Context, cli client.Client, name, namespace string) (*v1.Pipeline, error) {
 	if ctx.Value(InternalRequestPipelineContextKey) == nil {
 		return l.loader.GetInternalRequestPipeline(ctx, cli, name, namespace)
 	}
-	return toolkit.GetMockedResourceAndErrorFromContext(ctx, InternalRequestPipelineContextKey, &v1beta1.Pipeline{})
+	return toolkit.GetMockedResourceAndErrorFromContext(ctx, InternalRequestPipelineContextKey, &v1.Pipeline{})
 }
 
 // GetInternalRequestPipelineRun returns the resource and error passed as values of the context.
-func (l *mockLoader) GetInternalRequestPipelineRun(ctx context.Context, cli client.Client, internalRequest *v1alpha1.InternalRequest) (*v1beta1.PipelineRun, error) {
+func (l *mockLoader) GetInternalRequestPipelineRun(ctx context.Context, cli client.Client, internalRequest *v1alpha1.InternalRequest) (*v1.PipelineRun, error) {
 	if ctx.Value(InternalRequestPipelineRunContextKey) == nil {
 		return l.loader.GetInternalRequestPipelineRun(ctx, cli, internalRequest)
 	}
-	return toolkit.GetMockedResourceAndErrorFromContext(ctx, InternalRequestPipelineRunContextKey, &v1beta1.PipelineRun{})
+	return toolkit.GetMockedResourceAndErrorFromContext(ctx, InternalRequestPipelineRunContextKey, &v1.PipelineRun{})
 }
 
 // GetInternalServicesConfig returns the resource and error passed as values of the context.
