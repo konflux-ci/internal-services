@@ -23,7 +23,7 @@ import (
 
 	"github.com/konflux-ci/internal-services/metrics"
 	tektonutils "github.com/konflux-ci/internal-services/tekton/utils"
-	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -41,7 +41,7 @@ type InternalRequestSpec struct {
 
 	// Timeouts defines the different Timeouts to use in the InternalRequest PipelineRun execution
 	// +optional
-	Timeouts tektonv1beta1.TimeoutFields `json:"timeouts,omitempty"`
+	Timeouts tektonv1.TimeoutFields `json:"timeouts,omitempty"`
 
 	// ServiceAccount defines the serviceAccount to use in the InternalRequest PipelineRun execution.
 	// If none is passed, the default Tekton ServiceAccount will be used

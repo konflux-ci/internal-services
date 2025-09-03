@@ -6,7 +6,7 @@ import (
 	"github.com/konflux-ci/internal-services/tekton/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	tektonv1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -17,8 +17,8 @@ var _ = Describe("Loader", Ordered, func() {
 
 		internalServicesConfig *v1alpha1.InternalServicesConfig
 		internalRequest        *v1alpha1.InternalRequest
-		pipeline               *tektonv1beta1.Pipeline
-		pipelineRun            *tektonv1beta1.PipelineRun
+		pipeline               *tektonv1.Pipeline
+		pipelineRun            *tektonv1.PipelineRun
 	)
 
 	BeforeAll(func() {
@@ -40,7 +40,7 @@ var _ = Describe("Loader", Ordered, func() {
 		It("returns the requested Pipeline", func() {
 			returnedObject, err := loader.GetInternalRequestPipeline(ctx, k8sClient, pipeline.Name, pipeline.Namespace)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(returnedObject).NotTo(Equal(&tektonv1beta1.Pipeline{}))
+			Expect(returnedObject).NotTo(Equal(&tektonv1.Pipeline{}))
 			Expect(returnedObject.Name).To(Equal(pipeline.Name))
 		})
 	})
@@ -49,7 +49,7 @@ var _ = Describe("Loader", Ordered, func() {
 		It("returns a PipelineRun if the labels match with the internal request data", func() {
 			returnedObject, err := loader.GetInternalRequestPipelineRun(ctx, k8sClient, internalRequest)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(returnedObject).NotTo(Equal(&tektonv1beta1.PipelineRun{}))
+			Expect(returnedObject).NotTo(Equal(&tektonv1.PipelineRun{}))
 			Expect(returnedObject.Name).To(Equal(pipelineRun.Name))
 		})
 
@@ -101,7 +101,7 @@ var _ = Describe("Loader", Ordered, func() {
 		}
 		Expect(k8sClient.Create(ctx, internalServicesConfig)).To(Succeed())
 
-		pipeline = &tektonv1beta1.Pipeline{
+		pipeline = &tektonv1.Pipeline{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "pipeline",
 				Namespace: "default",
@@ -109,7 +109,7 @@ var _ = Describe("Loader", Ordered, func() {
 		}
 		Expect(k8sClient.Create(ctx, pipeline)).To(Succeed())
 
-		pipelineRun = &tektonv1beta1.PipelineRun{
+		pipelineRun = &tektonv1.PipelineRun{
 			ObjectMeta: metav1.ObjectMeta{
 				Labels: map[string]string{
 					tekton.InternalRequestNameLabel:      internalRequest.Name,
