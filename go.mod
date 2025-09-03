@@ -6,7 +6,7 @@ toolchain go1.24.6
 
 require (
 	github.com/go-logr/logr v1.4.3
-	github.com/konflux-ci/operator-toolkit v0.0.0-20240402130556-ef6dcbeca69d
+	github.com/konflux-ci/operator-toolkit 1a071261f50b
 	github.com/onsi/ginkgo/v2 v2.25.2
 	github.com/onsi/gomega v1.38.2
 	github.com/operator-framework/operator-lib v0.11.0
