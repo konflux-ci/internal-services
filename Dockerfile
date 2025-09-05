@@ -28,9 +28,6 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o ma
 FROM registry.access.redhat.com/ubi9-minimal:9.6-1755695350
 COPY --from=builder /opt/app-root/src/manager /
 
-# Temp fix to address CVE-2023-38545 and CVE-2023-38546
-RUN microdnf update -y curl-minimal
-
 # It is mandatory to set these labels
 LABEL name="Konflux Internal Services"
 LABEL description="Konflux Internal Services"
