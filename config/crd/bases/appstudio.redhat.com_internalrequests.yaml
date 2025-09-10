@@ -221,6 +221,11 @@ spec:
                   - type
                   type: object
                 type: array
+              pipelineRun:
+                description: PipelineRun contains the namespaced name of the PipelineRun
+                  executed for this InternalRequest
+                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?\/[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                type: string
               results:
                 additionalProperties:
                   type: string

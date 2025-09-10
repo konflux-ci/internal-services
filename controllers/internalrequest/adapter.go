@@ -29,6 +29,7 @@ import (
 	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"knative.dev/pkg/apis"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -210,26 +211,30 @@ func (a *Adapter) registerInternalRequestStatus(pipelineRun *tektonv1.PipelineRu
 
 // registerInternalRequestPipelineRunStatus keeps track of the PipelineRun status in the InternalRequest being processed.
 func (a *Adapter) registerInternalRequestPipelineRunStatus(pipelineRun *tektonv1.PipelineRun) error {
-	if pipelineRun == nil || !pipelineRun.IsDone() {
+	if pipelineRun == nil {
 		return nil
 	}
 
 	patch := client.MergeFrom(a.internalRequest.DeepCopy())
 
-	condition := pipelineRun.Status.GetCondition(apis.ConditionSucceeded)
-	if condition.IsTrue() {
-		a.internalRequest.Status.Results = tekton.GetResultsFromPipelineRun(pipelineRun)
-		a.internalRequest.MarkSucceeded()
-	} else {
-		a.internalRequest.MarkFailed(condition.Message)
+	a.internalRequest.Status.PipelineRun = fmt.Sprintf("%s%c%s",
+		pipelineRun.Namespace, types.Separator, pipelineRun.Name)
+
+	if pipelineRun.IsDone() {
+		condition := pipelineRun.Status.GetCondition(apis.ConditionSucceeded)
+		if condition.IsTrue() {
+			a.internalRequest.Status.Results = tekton.GetResultsFromPipelineRun(pipelineRun)
+			a.internalRequest.MarkSucceeded()
+		} else {
+			a.internalRequest.MarkFailed(condition.Message)
+		}
+		a.logger.Info("Request execution finished", "Succeeded", a.internalRequest.HasSucceeded())
 	}
 
 	err := a.client.Status().Patch(a.ctx, a.internalRequest, patch)
 	if err != nil {
 		return err
 	}
-
-	a.logger.Info("Request execution finished", "Succeeded", a.internalRequest.HasSucceeded())
 
 	return nil
 }

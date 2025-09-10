@@ -329,6 +329,8 @@ var _ = Describe("PipelineRun", Ordered, func() {
 	})
 
 	Context("When calling registerInternalRequestPipelineRunStatus", func() {
+		var pipelineRun *tektonv1.PipelineRun
+
 		AfterEach(func() {
 			deleteResources()
 		})
@@ -336,18 +338,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 		BeforeEach(func() {
 			createResources()
 			adapter.internalRequest.MarkRunning()
-		})
-
-		It("should return nil if the PipelineRun is nil", func() {
-			Expect(adapter.registerInternalRequestPipelineRunStatus(nil)).To(BeNil())
-		})
-
-		It("should return nil if the PipelineRun is not done", func() {
-			Expect(adapter.registerInternalRequestPipelineRunStatus(&tektonv1.PipelineRun{})).To(BeNil())
-		})
-
-		It("should copy the results emitted by a successful PipelineRun", func() {
-			pipelineRun := &tektonv1.PipelineRun{
+			pipelineRun = &tektonv1.PipelineRun{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "pipeline-run",
 					Namespace: "default",
@@ -373,6 +364,17 @@ var _ = Describe("PipelineRun", Ordered, func() {
 					},
 				},
 			}
+		})
+
+		It("should return nil if the PipelineRun is nil", func() {
+			Expect(adapter.registerInternalRequestPipelineRunStatus(nil)).To(BeNil())
+		})
+
+		It("should return nil if the PipelineRun is not done", func() {
+			Expect(adapter.registerInternalRequestPipelineRunStatus(pipelineRun)).To(BeNil())
+		})
+
+		It("should copy the results emitted by a successful PipelineRun", func() {
 			pipelineRun.Status.MarkSucceeded("", "")
 			Expect(adapter.registerInternalRequestPipelineRunStatus(pipelineRun)).To(BeNil())
 			Expect(adapter.internalRequest.Status.Results).To(HaveLen(2))
@@ -382,7 +384,6 @@ var _ = Describe("PipelineRun", Ordered, func() {
 
 		It("should set the InternalRequest as succeeded if the PipelineRun succeeded", func() {
 			adapter.internalRequest.MarkRunning()
-			pipelineRun := &tektonv1.PipelineRun{}
 			pipelineRun.Status.MarkSucceeded("", "")
 			Expect(adapter.registerInternalRequestPipelineRunStatus(pipelineRun)).To(BeNil())
 			Expect(adapter.internalRequest.HasSucceeded()).To(BeTrue())
@@ -390,10 +391,15 @@ var _ = Describe("PipelineRun", Ordered, func() {
 
 		It("should set the InternalRequest as failed if the PipelineRun failed", func() {
 			adapter.internalRequest.MarkRunning()
-			pipelineRun := &tektonv1.PipelineRun{}
 			pipelineRun.Status.MarkFailed("", "")
 			Expect(adapter.registerInternalRequestPipelineRunStatus(pipelineRun)).To(BeNil())
 			Expect(adapter.internalRequest.HasSucceeded()).To(BeFalse())
+		})
+
+		It("should record the PipelineRun namespaced name", func() {
+			adapter.internalRequest.MarkRunning()
+			Expect(adapter.registerInternalRequestPipelineRunStatus(pipelineRun)).To(BeNil())
+			Expect(adapter.internalRequest.Status.PipelineRun).To(Equal("default/pipeline-run"))
 		})
 	})
 
