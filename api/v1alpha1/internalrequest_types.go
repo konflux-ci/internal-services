@@ -60,6 +60,11 @@ type InternalRequestStatus struct {
 	// +optional
 	CompletionTime *metav1.Time `json:"completionTime,omitempty"`
 
+	// PipelineRun contains the namespaced name of the PipelineRun executed for this InternalRequest
+	// +kubebuilder:validation:Pattern=^[a-z0-9]([-a-z0-9]*[a-z0-9])?\/[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+	// +optional
+	PipelineRun string `json:"pipelineRun,omitempty"`
+
 	// Conditions represent the latest available observations for the internalrequest
 	// +optional
 	Conditions []metav1.Condition `json:"conditions"`
