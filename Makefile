@@ -105,7 +105,7 @@ fmt: ## Run go fmt against code.
 
 .PHONY: vet
 vet: ## Run go vet against code.
-	go vet ./...
+	GOMAXPROCS=1 go vet ./...
 
 .PHONY: test
 test: manifests generate fmt vet envtest ## Run tests.
