@@ -16,3 +16,7 @@ resources:
 - auth_proxy_role.yaml
 - auth_proxy_role_binding.yaml
 - auth_proxy_client_clusterrole.yaml
+- internalrequest_editor_role.yaml
+- internalrequest_viewer_role.yaml
+- internalservicesconfig_editor_role.yaml
+- internalservicesconfig_viewer_role.yaml
