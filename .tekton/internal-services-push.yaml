@@ -159,53 +159,23 @@ spec:
       workspaces:
       - name: basic-auth
         workspace: git-auth
-    - name: sealights-go-instrumentation
+    - name: unit-tests
       runAfter:
       - clone-repository
-      taskRef:
-        params:
-        - name: name
-          value: sealights-go-oci-ta
-        - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-sealights-go-oci-ta:0.1@sha256:ce75fd9d498365a9c1e42f8340cc3e7d09a68ab312588905d169964055f092b2
-        - name: kind
-          value: task
-        resolver: bundles
-      params:
-      - name: SOURCE_ARTIFACT
-        value: $(tasks.clone-repository.results.SOURCE_ARTIFACT)
-      - name: component
-        value: '{{ repo_name }}'
-      - name: branch
-        value: '{{ source_branch }}'
-      - name: revision
-        value: '{{ revision }}'
-      - name: oci-storage
-        value: $(params.output-image).sealights.git
-      - name: disable-token-save
-        value: "true"
-    - name: sealights-unit-tests
-      runAfter:
-      - sealights-go-instrumentation
       taskSpec:
         volumes:
-        - name: sealights-credentials
-          secret:
-            secretName: sealights-credentials
         - name: workdir
           emptyDir: {}
         stepTemplate:
           volumeMounts:
           - mountPath: /var/workdir
             name: workdir
-          - name: sealights-credentials
-            mountPath: /usr/local/sealights-credentials
         steps:
         - name: use-trusted-artifact
           image: quay.io/redhat-appstudio/build-trusted-artifacts:latest@sha256:9b180776a41d9a22a1c51539f1647c60defbbd55b44bbebdd4130e33512d8b0d
           args:
           - use
-          - $(tasks.sealights-go-instrumentation.results.SOURCE_ARTIFACT)=/var/workdir/source
+          - $(tasks.clone-repository.results.SOURCE_ARTIFACT)=/var/workdir/source
         - name: unit-tests
           image: registry.access.redhat.com/ubi9/go-toolset:9.6-1758501173
           securityContext:
@@ -215,7 +185,6 @@ spec:
             #!/bin/bash
             set -euo pipefail
 
-            export SEALIGHTS_TOKEN="$(cat /usr/local/sealights-credentials/token)"
             make test
     - name: prefetch-dependencies
       params:
@@ -228,7 +197,7 @@ spec:
       - name: ociArtifactExpiresAfter
         value: $(params.image-expires-after)
       runAfter:
-      - clone-repository
+      - unit-tests
       taskRef:
         params:
         - name: name
@@ -269,48 +238,6 @@ spec:
       - name: CACHI2_ARTIFACT
         value: $(tasks.prefetch-dependencies.results.CACHI2_ARTIFACT)
       runAfter:
-      - prefetch-dependencies
-      taskRef:
-        params:
-        - name: name
-          value: buildah-oci-ta
-        - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-buildah-oci-ta:0.5@sha256:203b7a3d8c04c1f3b5327db3f31a19647f8d46304e7ced1dd5dcbba19445ac10
-        - name: kind
-          value: task
-        resolver: bundles
-      when:
-      - input: $(tasks.init.results.build)
-        operator: in
-        values:
-        - "true"
-    - name: build-sealights-container
-      params:
-      - name: IMAGE
-        value: $(params.output-image).sealights
-      - name: DOCKERFILE
-        value: $(params.dockerfile)
-      - name: CONTEXT
-        value: $(params.path-context)
-      - name: HERMETIC
-        value: $(params.hermetic)
-      - name: PREFETCH_INPUT
-        value: $(params.prefetch-input)
-      - name: IMAGE_EXPIRES_AFTER
-        value: $(params.image-expires-after)
-      - name: COMMIT_SHA
-        value: $(tasks.clone-repository.results.commit)
-      - name: BUILD_ARGS
-        value:
-        - $(params.build-args[*])
-      - name: BUILD_ARGS_FILE
-        value: $(params.build-args-file)
-      - name: SOURCE_ARTIFACT
-        value: $(tasks.sealights-go-instrumentation.results.SOURCE_ARTIFACT)
-      - name: CACHI2_ARTIFACT
-        value: $(tasks.prefetch-dependencies.results.CACHI2_ARTIFACT)
-      runAfter:
-      - sealights-go-instrumentation
       - prefetch-dependencies
       taskRef:
         params:
