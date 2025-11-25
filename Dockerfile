@@ -36,6 +36,11 @@ LABEL io.k8s.display-name="internal-services"
 LABEL io.openshift.tags="internal-services"
 LABEL summary="Konflux Internal Services"
 LABEL com.redhat.component="internal-services"
+LABEL vendor="Red Hat, Inc."
+LABEL distribution-scope="public"
+LABEL release="1"
+LABEL url="github.com/konflux-ci/internal-services"
+LABEL version="1"
 
 USER 65532:65532
 
