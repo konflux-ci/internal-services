@@ -6,7 +6,7 @@ require (
 	github.com/go-logr/logr v1.4.3
 	github.com/konflux-ci/operator-toolkit v0.0.0-20250903120054-1a071261f50b
 	github.com/onsi/ginkgo/v2 v2.27.3
-	github.com/onsi/gomega v1.38.2
+	github.com/onsi/gomega v1.38.3
 	github.com/operator-framework/operator-lib v0.19.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/tektoncd/pipeline v1.7.0
