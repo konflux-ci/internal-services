@@ -37,6 +37,10 @@ spec:
     - name: oci-container-repo
       default: 'quay.io/konflux-test-storage/konflux-team/internal-services'
       description: The ORAS container used to store all test artifacts.
+    - name: artifact-browser-url
+      description: "URL to the artifact browser deployment. If provided, a link will be added to PR comments."
+      default: ""
+      type: string
   tasks:
     - name: test-metadata
       taskRef:
@@ -108,7 +112,7 @@ spec:
                     if [[ "$status" == "deleted" ]]; then
                         continue
                     fi
-                    
+
                     # Check if file has .md suffix or is in .github directory
                     if [[ "$filename" != *.md ]] && [[ "$filename" != .github/* ]]; then
                         echo -n "true" > $(results.testRelevant.path)
@@ -519,6 +523,8 @@ spec:
           value: cluster-provision.log
         - name: enable-test-results-analysis
           value: "true"
+        - name: artifact-browser-url
+          value: $(params.artifact-browser-url)
     - name: store-pipeline-status
       when:
         - input: "$(tasks.check-if-test-relevant.results.testRelevant)"
