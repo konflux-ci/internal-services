@@ -221,7 +221,7 @@ spec:
               secretName: $(params.cluster-access-secret)
         steps:
           - name: setup-cluster
-            image: registry.access.redhat.com/ubi9/go-toolset:9.6-1753853351
+            image: registry.access.redhat.com/ubi9/go-toolset:9.7-1766073541
             env:
               - name: REPO
                 value: $(params.git-repo)
@@ -285,7 +285,7 @@ spec:
               secretName: $(params.local-cluster-access-secret)
         steps:
           - name: setup-cluster-and-start-operator
-            image: registry.access.redhat.com/ubi9/go-toolset:9.6-1753853351
+            image: registry.access.redhat.com/ubi9/go-toolset:9.7-1766073541
             env:
               - name: REPO
                 value: $(params.git-repo)
@@ -388,7 +388,7 @@ spec:
               secretName: $(params.cluster-access-secret)
         steps:
           - name: create-internal-request
-            image: registry.access.redhat.com/ubi9/go-toolset:9.6-1753853351
+            image: registry.access.redhat.com/ubi9/go-toolset:9.7-1766073541
             env:
               - name: KUBECONFIG
                 value: '/credentials/kubeconfig'
