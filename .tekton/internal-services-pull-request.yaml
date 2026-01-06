@@ -167,33 +167,6 @@ spec:
       workspaces:
       - name: basic-auth
         workspace: git-auth
-    - name: unit-tests
-      runAfter:
-      - clone-repository
-      taskSpec:
-        volumes:
-        - name: workdir
-          emptyDir: {}
-        stepTemplate:
-          volumeMounts:
-          - mountPath: /var/workdir
-            name: workdir
-        steps:
-        - name: use-trusted-artifact
-          image: quay.io/redhat-appstudio/build-trusted-artifacts:latest@sha256:9b180776a41d9a22a1c51539f1647c60defbbd55b44bbebdd4130e33512d8b0d
-          args:
-          - use
-          - $(tasks.clone-repository.results.SOURCE_ARTIFACT)=/var/workdir/source
-        - name: unit-tests
-          image: registry.access.redhat.com/ubi9/go-toolset:9.6-1758501173
-          securityContext:
-            runAsUser: 0
-          workingDir: /var/workdir/source
-          script: |
-            #!/bin/bash
-            set -euo pipefail
-
-            make test
     - name: prefetch-dependencies
       params:
       - name: input
@@ -205,7 +178,7 @@ spec:
       - name: ociArtifactExpiresAfter
         value: $(params.image-expires-after)
       runAfter:
-      - unit-tests
+      - clone-repository
       taskRef:
         params:
         - name: name
@@ -506,7 +479,7 @@ spec:
         - name: name
           value: rpms-signature-scan
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-rpms-signature-scan:0.2@sha256:1b6c20ab3dbfb0972803d3ebcb2fa72642e59400c77bd66dfd82028bdd09e120
+          value: quay.io/konflux-ci/tekton-catalog/task-rpms-signature-scan:0.2@sha256:0b10508c82ccb0f5a06a66ce7af56e9bfd40651ddefdf0f499988e897771ee28
         - name: kind
           value: task
         resolver: bundles
