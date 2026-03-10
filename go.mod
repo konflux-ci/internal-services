@@ -14,7 +14,7 @@ require (
 	k8s.io/api v0.35.2
 	k8s.io/apimachinery v0.35.2
 	k8s.io/client-go v0.35.2
-	knative.dev/pkg v0.0.0-20260120122510-4a022ed9999a
+	knative.dev/pkg v0.0.0-20260310013839-5504026dd1b6
 	sigs.k8s.io/controller-runtime v0.23.1
 )
 
@@ -87,7 +87,7 @@ require (
 	golang.org/x/mod v0.33.0 // indirect
 	golang.org/x/net v0.51.0 // indirect
 	golang.org/x/oauth2 v0.35.0 // indirect
-	golang.org/x/sync v0.19.0 // indirect
+	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/term v0.40.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
