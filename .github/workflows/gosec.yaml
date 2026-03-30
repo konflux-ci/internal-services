@@ -22,7 +22,7 @@ jobs:
           fetch-depth: 1
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Run Gosec Security Scanner
-        uses: securego/gosec@3e99c47487e7abae555798b25926449179d2063b # master
+        uses: securego/gosec@48e8716e7becbb56b60549db71a7c2f056d42659 # master
         with:
           args: -exclude-generated ./...
         env:
