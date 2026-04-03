@@ -115,7 +115,11 @@ test: manifests generate fmt vet envtest ## Run tests.
 
 .PHONY: build
 build: generate fmt vet ## Build manager binary.
+ifeq ($(ENABLE_COVERAGE),true)
+	CGO_ENABLED=0 go build -p 2 -cover -covermode=atomic -tags=coverage -o bin/manager .
+else
 	go build -o bin/manager main.go
+endif
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
