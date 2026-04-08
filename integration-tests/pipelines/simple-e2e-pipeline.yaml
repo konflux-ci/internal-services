@@ -51,7 +51,7 @@ spec:
           - name: revision
             value: main
           - name: pathInRepo
-            value: tasks/test-metadata/0.1/test-metadata.yaml
+            value: tasks/test-metadata/0.4/test-metadata.yaml
       params:
         - name: SNAPSHOT
           value: $(params.SNAPSHOT)
@@ -262,6 +262,10 @@ spec:
           value: "$(tasks.test-metadata.results.source-repo-url)"
         - name: git-revision
           value: "$(tasks.test-metadata.results.git-revision)"
+        - name: git-org
+          value: "$(tasks.test-metadata.results.git-org)"
+        - name: git-repo-name
+          value: "$(tasks.test-metadata.results.git-repo)"
         - name: remote-cluster-access-secret
           value: kfg-$(context.pipelineRun.name)-remote
         - name: local-cluster-access-secret
@@ -271,6 +275,10 @@ spec:
           - name: git-repo
             type: string
           - name: git-revision
+            type: string
+          - name: git-org
+            type: string
+          - name: git-repo-name
             type: string
           - name: remote-cluster-access-secret
             type: string
@@ -283,6 +291,8 @@ spec:
           - name: local-credentials
             secret:
               secretName: $(params.local-cluster-access-secret)
+          - name: coverage-data
+            emptyDir: {}
         steps:
           - name: setup-cluster-and-start-operator
             image: registry.access.redhat.com/ubi9/go-toolset:9.7-1772411495
@@ -300,6 +310,8 @@ spec:
                 mountPath: /local-credentials
               - name: remote-credentials
                 mountPath: /remote-credentials
+              - name: coverage-data
+                mountPath: /coverage-data
             script: |
               #!/usr/bin/env bash
               set -x
@@ -314,8 +326,8 @@ spec:
               git reset --hard "$REVISION"
               # Install the CRDs
               make install
-              # Build the manager binary
-              make build
+              # Build the manager binary with coverage instrumentation
+              ENABLE_COVERAGE=true make build
 
               # Install tekton
               kubectl apply --filename https://storage.googleapis.com/tekton-releases/pipeline/latest/release.yaml
@@ -365,9 +377,59 @@ spec:
               EOF
               kubectl create -f pipeline.yaml
 
-              # Start the operator and run it for 5 minutes. The pipeline can't finish until this task completes
-              # The command fails when it completes for whatever reason, so || true
-              timeout 300s go run main.go --remote-cluster-config-file="$REMOTE_KUBECONFIG" || true
+              # Start the operator with coverage data collection
+              mkdir -p /coverage-data/raw
+              GOCOVERDIR=/coverage-data/raw timeout 300s ./bin/manager --remote-cluster-config-file="$REMOTE_KUBECONFIG" || true
+
+              # Convert binary coverage data to text format
+              if [ -d /coverage-data/raw ] && [ "$(ls -A /coverage-data/raw 2>/dev/null)" ]; then
+                  go tool covdata textfmt -i=/coverage-data/raw -o /coverage-data/coverage.out
+                  echo "Coverage data written to /coverage-data/coverage.out"
+              else
+                  echo "No coverage data collected"
+              fi
+          - name: upload-coverage
+            image: quay.io/konflux-ci/konflux-devprod/coverport-cli
+            env:
+              - name: CODECOV_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: internal-services-coverport-secrets
+                    key: codecov-token
+              - name: COMMIT_SHA
+                value: $(params.git-revision)
+              - name: REPO_SLUG
+                value: $(params.git-org)/$(params.git-repo-name)
+              - name: REPO
+                value: $(params.git-repo)
+              - name: REVISION
+                value: $(params.git-revision)
+            volumeMounts:
+              - name: coverage-data
+                mountPath: /coverage-data
+            script: |
+              #!/usr/bin/env bash
+              set -eo pipefail
+
+              if [ ! -f /coverage-data/coverage.out ]; then
+                  echo "No coverage data found, skipping upload"
+                  exit 0
+              fi
+              git clone "$REPO" repo
+              cd repo
+              git reset --hard "$REVISION"
+
+              echo "Uploading e2e coverage to Codecov..."
+              curl -Os https://cli.codecov.io/v11.2.8/linux/codecov
+              chmod +x codecov
+              ./codecov upload-process \
+                --token "${CODECOV_TOKEN}" \
+                --commit-sha "${COMMIT_SHA}" \
+                --git-service github \
+                --slug "${REPO_SLUG}" \
+                --flag e2e-tests \
+                --file /coverage-data/coverage.out \
+                --disable-search
     - name: create-internalrequest-on-remote-cluster
       runAfter:
         - setup-remote-cluster
