@@ -52,7 +52,7 @@ type Reconciler struct {
 // +kubebuilder:rbac:groups=appstudio.redhat.com,resources=internalrequests/finalizers,verbs=update
 // +kubebuilder:rbac:groups=appstudio.redhat.com,resources=internalservicesconfigs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=tekton.dev,resources=pipelines,verbs=get;list;watch
-// +kubebuilder:rbac:groups=tekton.dev,resources=pipelineruns,verbs=get;list;watch;create;delete
+// +kubebuilder:rbac:groups=tekton.dev,resources=pipelineruns,verbs=get;list;watch;create;delete;patch
 // +kubebuilder:rbac:groups=tekton.dev,resources=pipelineruns/status,verbs=get
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -73,6 +73,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	adapter := NewAdapter(ctx, r.Client, r.InternalClient, internalRequest, loader.NewLoader(), logger)
 
 	return controller.ReconcileHandler([]controller.Operation{
+		adapter.EnsureFinalizersAreCalled,
+		adapter.EnsureFinalizerIsAdded,
 		adapter.EnsureRequestINotCompleted,
 		adapter.EnsureConfigIsLoaded, // This operation sets the config in the adapter to be used in other operations.
 		adapter.EnsureRequestIsAllowed,
