@@ -34,6 +34,10 @@ const (
 	// internalRequestLabelPrefix is the prefix of the internal request labels
 	internalRequestLabelPrefix = "internal-services.appstudio.openshift.io"
 
+	// InternalRequestFinalizer is the finalizer added to InternalRequests to ensure the
+	// associated PipelineRun is cancelled before the InternalRequest is deleted.
+	InternalRequestFinalizer = internalRequestLabelPrefix + "/pipelinerun-cleanup"
+
 	// PipelineTypeRelease is the type for PipelineRuns created to run a release Pipeline
 	PipelineTypeRelease = "release"
 )
