@@ -156,6 +156,10 @@ spec:
           value: $(params.oci-container-repo):$(context.pipelineRun.name)-remote
         - name: credentials-secret-name
           value: $(params.konflux-test-infra-secret)
+        - name: spot
+          value: "false"
+        - name: compute-sizes
+          value: "t3a.2xlarge,m5a.2xlarge,m5ad.2xlarge,m6a.2xlarge,m7a.2xlarge,m8a.2xlarge"
     - name: provision-local-kind-cluster
       runAfter:
         - check-if-test-relevant
@@ -193,6 +197,10 @@ spec:
           value: $(params.oci-container-repo):$(context.pipelineRun.name)-local
         - name: credentials-secret-name
           value: $(params.konflux-test-infra-secret)
+        - name: spot
+          value: "false"
+        - name: compute-sizes
+          value: "t3a.2xlarge,m5a.2xlarge,m5ad.2xlarge,m6a.2xlarge,m7a.2xlarge,m8a.2xlarge"
     - name: setup-remote-cluster
       runAfter:
         - provision-remote-kind-cluster
