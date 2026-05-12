@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/konflux-ci/internal-services/loader"
+	"github.com/konflux-ci/internal-services/tekton"
 	"github.com/konflux-ci/internal-services/tekton/utils"
 	toolkit "github.com/konflux-ci/operator-toolkit/loader"
 
@@ -33,6 +34,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 var _ = Describe("PipelineRun", Ordered, func() {
@@ -152,6 +155,137 @@ var _ = Describe("PipelineRun", Ordered, func() {
 			result, err := adapter.EnsurePipelineRunIsDeleted()
 			Expect(!result.CancelRequest && !result.RequeueRequest).To(BeTrue())
 			Expect(err).To(BeNil())
+		})
+	})
+
+	Context("When calling EnsureFinalizersAreCalled", func() {
+		AfterEach(func() {
+			deleteResources()
+		})
+
+		BeforeEach(func() {
+			createResources()
+		})
+
+		It("should do nothing if the InternalRequest is not set to be deleted", func() {
+			result, err := adapter.EnsureFinalizersAreCalled()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(!result.CancelRequest && !result.RequeueRequest).To(BeTrue())
+		})
+
+		It("should requeue if finalizeInternalRequest fails", func() {
+			adapter.internalRequestPipeline = pipeline
+			adapter.internalRequest.MarkRunning()
+
+			result, err := adapter.EnsureFinalizerIsAdded()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(adapter.internalRequest.Finalizers).To(HaveLen(1))
+
+			Expect(k8sClient.Delete(ctx, adapter.internalRequest)).To(Succeed())
+			adapter.internalRequest, err = adapter.loader.GetInternalRequest(
+				ctx, k8sClient, adapter.internalRequest.Name, adapter.internalRequest.Namespace)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(adapter.internalRequest.DeletionTimestamp).NotTo(BeNil())
+
+			adapter.ctx = toolkit.GetMockedContext(ctx, []toolkit.MockData{
+				{
+					ContextKey: loader.InternalRequestPipelineRunContextKey,
+					Err:        fmt.Errorf("some error"),
+				},
+			})
+			result, err = adapter.EnsureFinalizersAreCalled()
+			Expect(!result.CancelRequest && result.RequeueRequest).To(BeTrue())
+			Expect(err).NotTo(BeNil())
+		})
+
+		It("should finalize the InternalRequest if it's set to be deleted and it has a finalizer", func() {
+			adapter.internalRequestPipeline = pipeline
+			adapter.internalRequest.MarkRunning()
+
+			result, err := adapter.EnsureFinalizerIsAdded()
+			Expect(!result.RequeueRequest && result.CancelRequest).To(BeFalse())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(adapter.internalRequest.Finalizers).To(HaveLen(1))
+
+			pipelineRun, err := adapter.createInternalRequestPipelineRun()
+			Expect(pipelineRun).NotTo(BeNil())
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(k8sClient.Delete(ctx, adapter.internalRequest)).To(Succeed())
+			adapter.internalRequest, err = adapter.loader.GetInternalRequest(
+				ctx, k8sClient, adapter.internalRequest.Name, adapter.internalRequest.Namespace)
+			Expect(adapter.internalRequest).NotTo(BeNil())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(adapter.internalRequest.DeletionTimestamp).NotTo(BeNil())
+
+			result, err = adapter.EnsureFinalizersAreCalled()
+			Expect(result.RequeueRequest && !result.CancelRequest).To(BeTrue())
+			Expect(err).NotTo(HaveOccurred())
+
+			cancelledPipelineRun, err := adapter.loader.GetInternalRequestPipelineRun(
+				ctx, k8sClient, adapter.internalRequest)
+			Expect(err).NotTo(HaveOccurred())
+			if cancelledPipelineRun != nil {
+				Expect(string(cancelledPipelineRun.Spec.Status)).To(
+					Equal(string(tektonv1.PipelineRunSpecStatusCancelled)))
+			}
+
+			_, err = adapter.loader.GetInternalRequest(ctx, k8sClient, adapter.internalRequest.Name, adapter.internalRequest.Namespace)
+			Expect(err).To(HaveOccurred())
+			Expect(errors.IsNotFound(err)).To(BeTrue())
+		})
+
+		It("should finalize without error when no PipelineRun exists", func() {
+			adapter.internalRequest.MarkRunning()
+
+			result, err := adapter.EnsureFinalizerIsAdded()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(adapter.internalRequest.Finalizers).To(HaveLen(1))
+
+			Expect(k8sClient.Delete(ctx, adapter.internalRequest)).To(Succeed())
+			adapter.internalRequest, err = adapter.loader.GetInternalRequest(
+				ctx, k8sClient, adapter.internalRequest.Name, adapter.internalRequest.Namespace)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(adapter.internalRequest.DeletionTimestamp).NotTo(BeNil())
+
+			result, err = adapter.EnsureFinalizersAreCalled()
+			Expect(result.RequeueRequest && !result.CancelRequest).To(BeTrue())
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = adapter.loader.GetInternalRequest(ctx, k8sClient, adapter.internalRequest.Name, adapter.internalRequest.Namespace)
+			Expect(err).To(HaveOccurred())
+			Expect(errors.IsNotFound(err)).To(BeTrue())
+		})
+	})
+
+	Context("When calling EnsureFinalizerIsAdded", func() {
+		AfterEach(func() {
+			deleteResources()
+		})
+
+		BeforeEach(func() {
+			createResources()
+		})
+
+		It("should add a finalizer when one does not exist", func() {
+			Expect(adapter.internalRequest.Finalizers).To(BeEmpty())
+			result, err := adapter.EnsureFinalizerIsAdded()
+			Expect(!result.CancelRequest && !result.RequeueRequest).To(BeTrue())
+			Expect(err).To(BeNil())
+			Expect(adapter.internalRequest.Finalizers).To(HaveLen(1))
+			Expect(adapter.internalRequest.Finalizers[0]).To(Equal(tekton.InternalRequestFinalizer))
+		})
+
+		It("should not add a duplicate finalizer", func() {
+			result, err := adapter.EnsureFinalizerIsAdded()
+			Expect(err).To(BeNil())
+			Expect(!result.CancelRequest && !result.RequeueRequest).To(BeTrue())
+			Expect(adapter.internalRequest.Finalizers).To(HaveLen(1))
+
+			result, err = adapter.EnsureFinalizerIsAdded()
+			Expect(err).To(BeNil())
+			Expect(!result.CancelRequest && !result.RequeueRequest).To(BeTrue())
+			Expect(adapter.internalRequest.Finalizers).To(HaveLen(1))
 		})
 	})
 
@@ -452,7 +586,15 @@ var _ = Describe("PipelineRun", Ordered, func() {
 
 	deleteResources = func() {
 		_ = k8sClient.Delete(ctx, adapter.internalServicesConfig)
-		Expect(k8sClient.Delete(ctx, adapter.internalRequest)).To(Succeed())
+
+		// Remove any finalizers before deleting the InternalRequest so it doesn't get stuck
+		if controllerutil.ContainsFinalizer(adapter.internalRequest, tekton.InternalRequestFinalizer) {
+			patch := client.MergeFrom(adapter.internalRequest.DeepCopy())
+			controllerutil.RemoveFinalizer(adapter.internalRequest, tekton.InternalRequestFinalizer)
+			_ = k8sClient.Patch(ctx, adapter.internalRequest, patch)
+		}
+
+		_ = k8sClient.Delete(ctx, adapter.internalRequest)
 		Expect(k8sClient.Delete(ctx, pipeline)).To(Succeed())
 		err := k8sClient.DeleteAllOf(ctx, &tektonv1.PipelineRun{})
 		Expect(err == nil || errors.IsNotFound(err)).To(BeTrue())
