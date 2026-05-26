@@ -340,6 +340,13 @@ spec:
               # Install tekton
               kubectl apply --filename https://storage.googleapis.com/tekton-releases/pipeline/latest/release.yaml
 
+              # Wait for Tekton resolver deployment to be ready before starting the operator,
+              # so the cluster resolver can handle PipelineRun resolution.
+              kubectl wait deployment/tekton-pipelines-remote-resolvers \
+                -n tekton-pipelines-resolvers \
+                --for=condition=Available \
+                --timeout=120s
+
               # Create the InternalServicesConfig
               cat > config.yaml << EOF
               apiVersion: appstudio.redhat.com/v1alpha1
