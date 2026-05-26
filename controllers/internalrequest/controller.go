@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/cluster"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -52,7 +53,7 @@ type Reconciler struct {
 // +kubebuilder:rbac:groups=appstudio.redhat.com,resources=internalrequests/finalizers,verbs=update
 // +kubebuilder:rbac:groups=appstudio.redhat.com,resources=internalservicesconfigs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=tekton.dev,resources=pipelines,verbs=get;list;watch
-// +kubebuilder:rbac:groups=tekton.dev,resources=pipelineruns,verbs=get;list;watch;create;delete
+// +kubebuilder:rbac:groups=tekton.dev,resources=pipelineruns,verbs=get;list;watch;create;delete;patch
 // +kubebuilder:rbac:groups=tekton.dev,resources=pipelineruns/status,verbs=get
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -73,6 +74,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	adapter := NewAdapter(ctx, r.Client, r.InternalClient, internalRequest, loader.NewLoader(), logger)
 
 	return controller.ReconcileHandler([]controller.Operation{
+		adapter.EnsureFinalizersAreCalled,
+		adapter.EnsureFinalizerIsAdded,
 		adapter.EnsureRequestINotCompleted,
 		adapter.EnsureConfigIsLoaded, // This operation sets the config in the adapter to be used in other operations.
 		adapter.EnsureRequestIsAllowed,
@@ -98,8 +101,22 @@ func (r *Reconciler) Register(mgr ctrl.Manager, log *logr.Logger, remoteCluster 
 		WatchesRawSource(
 			source.TypedKind(remoteCluster.GetCache(), &v1alpha1.InternalRequest{},
 				&handler.TypedEnqueueRequestForObject[*v1alpha1.InternalRequest]{},
-				predicates.TypedGenerationChangedPredicate[*v1alpha1.InternalRequest]{},
-				predicates.TypedNewObjectsPredicate[*v1alpha1.InternalRequest]{},
+				predicate.TypedFuncs[*v1alpha1.InternalRequest]{
+					CreateFunc: func(e event.TypedCreateEvent[*v1alpha1.InternalRequest]) bool {
+						return true
+					},
+					UpdateFunc: func(e event.TypedUpdateEvent[*v1alpha1.InternalRequest]) bool {
+						return e.ObjectNew.GetGeneration() != e.ObjectOld.GetGeneration() ||
+							(e.ObjectNew.GetDeletionTimestamp() != nil &&
+								e.ObjectOld.GetDeletionTimestamp() == nil)
+					},
+					DeleteFunc: func(e event.TypedDeleteEvent[*v1alpha1.InternalRequest]) bool {
+						return false
+					},
+					GenericFunc: func(e event.TypedGenericEvent[*v1alpha1.InternalRequest]) bool {
+						return false
+					},
+				},
 			),
 		).
 		Watches(&tektonv1.PipelineRun{}, &libhandler.EnqueueRequestForAnnotation[client.Object]{
