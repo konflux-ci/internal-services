@@ -270,8 +270,8 @@ k8s.io/kube-openapi v0.0.0-20260520065146-aa012df4f4af h1:zLXA2Irn14q2/06WMkxViy
 k8s.io/kube-openapi v0.0.0-20260520065146-aa012df4f4af/go.mod h1:V/QaCUYDa+0QpcHhVVc5l99Uz56wEMEXBSj9oCDkNDY=
 k8s.io/utils v0.0.0-20260507154919-ff6756f316d2 h1:wU4tMEhLGgIbLvXQb1cfN+EcM0wf7zC6CPF+C79jroc=
 k8s.io/utils v0.0.0-20260507154919-ff6756f316d2/go.mod h1:xDxuJ0whA3d0I4mf/C4ppKHxXynQ+fxnkmQH0vTHnuk=
-knative.dev/pkg v0.0.0-20260520153225-91e8142be85c h1:pzGFYMEGKz/NyAm+K16AYo8tG7Je1bQ4/8ajYlh04bc=
-knative.dev/pkg v0.0.0-20260520153225-91e8142be85c/go.mod h1:TaNtJ5LwYdcDj+SENimVsHby1nDBI6zI1oNCkR4xH2Y=
+knative.dev/pkg v0.0.0-20260528184932-0dbbb5a7d623 h1:6tCZr0uzT5ZLDQHmYHTmvX/6WKHsLBAlmY2b2p+k6Bc=
+knative.dev/pkg v0.0.0-20260528184932-0dbbb5a7d623/go.mod h1:3/ACpFr1GwpmELPWoBIIlQc8YMZ9KqdhsE4xNbEDbbo=
 sigs.k8s.io/controller-runtime v0.23.3 h1:VjB/vhoPoA9l1kEKZHBMnQF33tdCLQKJtydy4iqwZ80=
 sigs.k8s.io/controller-runtime v0.23.3/go.mod h1:B6COOxKptp+YaUT5q4l6LqUJTRpizbgf9KSRNdQGns0=
 sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 h1:IpInykpT6ceI+QxKBbEflcR5EXP7sU1kvOlxwZh5txg=
