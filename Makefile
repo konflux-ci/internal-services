@@ -109,7 +109,9 @@ vet: ## Run go vet against code.
 
 .PHONY: test
 test: manifests generate fmt vet envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... -coverprofile cover.out
+	# -p 1 limits parallel package compilation to prevent simultaneous linker invocations
+	# from exhausting pod memory (OOM kill) in CI environments with constrained resources
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test -p 1 ./... -coverprofile cover.out
 
 ##@ Build
 
