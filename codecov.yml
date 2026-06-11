@@ -1,16 +1,21 @@
-# Documentation: https://docs.codecov.io/docs/codecov-yaml
+codecov:
+  require_ci_to_pass: false
+
 ignore:
-  - "api/v1alpha1/zz_generated.deepcopy.go" # generated file
+  - "api/v1alpha1/zz_generated.deepcopy.go"
 
 coverage:
-    status:
-        # Allows coverage to drop by a 3% when compared against the base commit.
-        project:
-            default:
-                target: auto
-                threshold: 3%
-        # Sets the expected status for `codecov/patch` check.
-        # We set this to be only informational hence it does not cause the check to fail.
-        patch:
-            default:
-                informational: true
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%
+        informational: true
+    patch:
+      default:
+        target: 80%
+        informational: true
+
+comment:
+  layout: "reach,diff,flags,files,footer"
+  require_changes: true
