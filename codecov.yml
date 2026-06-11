@@ -7,7 +7,7 @@ ignore:
 
 coverage:
   status:
-    # Allows coverage to drop by a 3% when compared against the base commit.
+    # Allows coverage to drop by 1% when compared against the base commit.
     project:
       default:
         target: auto
