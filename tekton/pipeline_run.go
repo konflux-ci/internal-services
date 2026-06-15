@@ -18,6 +18,7 @@ package tekton
 
 import (
 	"fmt"
+	"maps"
 	"reflect"
 	"strings"
 
@@ -87,11 +88,13 @@ func (i *InternalRequestPipelineRun) WithInternalRequest(internalRequest *v1alph
 		})
 	}
 
-	i.ObjectMeta.Labels = map[string]string{
-		InternalRequestNameLabel:      internalRequest.Name,
-		InternalRequestNamespaceLabel: internalRequest.Namespace,
-		metadata.PipelinesTypeLabel:   PipelineTypeRelease,
-	}
+	i.ObjectMeta.Labels = make(map[string]string)
+	maps.Copy(i.ObjectMeta.Labels, internalRequest.Labels)
+
+	// System labels override any user-provided labels
+	i.ObjectMeta.Labels[InternalRequestNameLabel] = internalRequest.Name
+	i.ObjectMeta.Labels[InternalRequestNamespaceLabel] = internalRequest.Namespace
+	i.ObjectMeta.Labels[metadata.PipelinesTypeLabel] = PipelineTypeRelease
 
 	if internalRequest.Spec.Timeouts != (tektonv1.TimeoutFields{}) {
 		i.Spec.Timeouts = &internalRequest.Spec.Timeouts
