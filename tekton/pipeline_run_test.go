@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/konflux-ci/internal-services/api/v1alpha1"
+	"github.com/konflux-ci/internal-services/metadata"
 	"github.com/konflux-ci/internal-services/tekton/utils"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -94,6 +95,42 @@ var _ = Describe("PipelineRun", Ordered, func() {
 
 			Expect(newInternalRequestPipelineRun.Labels[InternalRequestNameLabel]).To(Equal(internalRequest.Name))
 			Expect(newInternalRequestPipelineRun.Labels[InternalRequestNamespaceLabel]).To(Equal(internalRequest.Namespace))
+		})
+
+		It("should copy all labels from the InternalRequest to the PipelineRun", func() {
+			newInternalRequest := internalRequest.DeepCopy()
+			newInternalRequest.Labels = map[string]string{
+				"app.kubernetes.io/name":      "test-app",
+				"app.kubernetes.io/component": "backend",
+				"custom-label":                "custom-value",
+			}
+
+			newInternalRequestPipelineRun := NewInternalRequestPipelineRun(internalServicesConfig)
+			newInternalRequestPipelineRun.WithInternalRequest(newInternalRequest)
+
+			Expect(newInternalRequestPipelineRun.Labels).To(HaveKeyWithValue("app.kubernetes.io/name", "test-app"))
+			Expect(newInternalRequestPipelineRun.Labels).To(HaveKeyWithValue("app.kubernetes.io/component", "backend"))
+			Expect(newInternalRequestPipelineRun.Labels).To(HaveKeyWithValue("custom-label", "custom-value"))
+			Expect(newInternalRequestPipelineRun.Labels[InternalRequestNameLabel]).To(Equal(newInternalRequest.Name))
+			Expect(newInternalRequestPipelineRun.Labels[InternalRequestNamespaceLabel]).To(Equal(newInternalRequest.Namespace))
+		})
+
+		It("should ensure system labels cannot be overwritten by InternalRequest labels", func() {
+			newInternalRequest := internalRequest.DeepCopy()
+			newInternalRequest.Labels = map[string]string{
+				InternalRequestNameLabel:      "user-provided-name",
+				InternalRequestNamespaceLabel: "user-provided-namespace",
+				metadata.PipelinesTypeLabel:   "user-provided-type",
+				"custom-label":                "custom-value",
+			}
+
+			newInternalRequestPipelineRun := NewInternalRequestPipelineRun(internalServicesConfig)
+			newInternalRequestPipelineRun.WithInternalRequest(newInternalRequest)
+
+			Expect(newInternalRequestPipelineRun.Labels[InternalRequestNameLabel]).To(Equal(newInternalRequest.Name))
+			Expect(newInternalRequestPipelineRun.Labels[InternalRequestNamespaceLabel]).To(Equal(newInternalRequest.Namespace))
+			Expect(newInternalRequestPipelineRun.Labels[metadata.PipelinesTypeLabel]).To(Equal(PipelineTypeRelease))
+			Expect(newInternalRequestPipelineRun.Labels).To(HaveKeyWithValue("custom-label", "custom-value"))
 		})
 
 		It("should contain the timeout values", func() {
