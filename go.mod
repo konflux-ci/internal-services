@@ -1,6 +1,6 @@
 module github.com/konflux-ci/internal-services
 
-go 1.25.7
+go 1.26
 
 require (
 	github.com/go-logr/logr v1.4.3
@@ -10,7 +10,7 @@ require (
 	github.com/onsi/gomega v1.42.1
 	github.com/operator-framework/operator-lib v0.19.0
 	github.com/prometheus/client_golang v1.23.2
-	github.com/tektoncd/pipeline v1.12.0
+	github.com/tektoncd/pipeline v1.13.1
 	go.uber.org/zap v1.28.0
 	k8s.io/api v0.35.6
 	k8s.io/apimachinery v0.35.6
