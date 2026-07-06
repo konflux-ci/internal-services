@@ -4,7 +4,7 @@ go 1.25.7
 
 require (
 	github.com/go-logr/logr v1.4.3
-	github.com/konflux-ci/coverport/instrumentation/go v0.0.0-20260611122559-e33f1c60c1f7
+	github.com/konflux-ci/coverport/instrumentation/go v0.0.0-20260702112528-a398cbb1e51f
 	github.com/konflux-ci/operator-toolkit v0.0.0-20260312101100-d4e398191a68
 	github.com/onsi/ginkgo/v2 v2.32.0
 	github.com/onsi/gomega v1.42.1
