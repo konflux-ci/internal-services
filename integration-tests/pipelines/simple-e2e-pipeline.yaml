@@ -84,7 +84,7 @@ spec:
             type: string
         steps:
           - name: check-if-test-relevant
-            image: quay.io/konflux-ci/release-service-utils:56d2d170ccaf0db49a49df3b978c602ee8d9e0fa
+            image: quay.io/konflux-ci/release-service-utils@sha256:14cc7c9550cf0cecf0ba675e6ac827994f183391b94cba5a1c9a63dce5ef4f67
             env:
               - name: SNAPSHOT
                 value: $(params.SNAPSHOT)
@@ -383,7 +383,7 @@ spec:
                     taskSpec:
                       steps:
                         - name: echo
-                          image: quay.io/konflux-ci/release-service-utils:56d2d170ccaf0db49a49df3b978c602ee8d9e0fa
+                          image: quay.io/konflux-ci/release-service-utils@sha256:14cc7c9550cf0cecf0ba675e6ac827994f183391b94cba5a1c9a63dce5ef4f67
                           script: |
                             #!/usr/bin/env sh
                             set -eux
