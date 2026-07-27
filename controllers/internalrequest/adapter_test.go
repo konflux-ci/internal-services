@@ -466,6 +466,65 @@ var _ = Describe("PipelineRun", Ordered, func() {
 			Expect(adapter.internalRequest.Status.Conditions[0].Reason).To(Equal(string(v1alpha1.RejectedReason)))
 			Expect(adapter.internalRequest.Status.Conditions[0].Message).To(ContainSubstring("not in the allow list"))
 		})
+
+		It("should allow when allowedGitResolverURLs is empty", func() {
+			Expect(k8sClient.Delete(ctx, adapter.internalServicesConfig)).To(Succeed())
+
+			adapter.internalServicesConfig = &v1alpha1.InternalServicesConfig{
+				Spec: v1alpha1.InternalServicesConfigSpec{
+					AllowList: []string{"default"},
+				},
+			}
+			result, err := adapter.EnsureRequestIsAllowed()
+			Expect(!result.CancelRequest && !result.RequeueRequest).To(BeTrue())
+			Expect(err).To(BeNil())
+		})
+
+		It("should allow when the git resolver URL matches an entry in allowedGitResolverURLs", func() {
+			Expect(k8sClient.Delete(ctx, adapter.internalServicesConfig)).To(Succeed())
+
+			adapter.internalServicesConfig = &v1alpha1.InternalServicesConfig{
+				Spec: v1alpha1.InternalServicesConfigSpec{
+					AllowList:              []string{"default"},
+					AllowedGitResolverURLs: []string{"my-url", "other-url"},
+				},
+			}
+			result, err := adapter.EnsureRequestIsAllowed()
+			Expect(!result.CancelRequest && !result.RequeueRequest).To(BeTrue())
+			Expect(err).To(BeNil())
+		})
+
+		It("should reject when the git resolver URL does not match any entry in allowedGitResolverURLs", func() {
+			Expect(k8sClient.Delete(ctx, adapter.internalServicesConfig)).To(Succeed())
+
+			adapter.internalServicesConfig = &v1alpha1.InternalServicesConfig{
+				Spec: v1alpha1.InternalServicesConfigSpec{
+					AllowList:              []string{"default"},
+					AllowedGitResolverURLs: []string{"other-url"},
+				},
+			}
+			result, err := adapter.EnsureRequestIsAllowed()
+			Expect(result.CancelRequest && !result.RequeueRequest).To(BeTrue())
+			Expect(err).To(BeNil())
+			Expect(adapter.internalRequest.Status.Conditions).To(HaveLen(1))
+			Expect(adapter.internalRequest.Status.Conditions[0].Reason).To(Equal(string(v1alpha1.RejectedReason)))
+			Expect(adapter.internalRequest.Status.Conditions[0].Message).To(ContainSubstring("not in the allowed list"))
+		})
+
+		It("should skip git resolver URL check when resolver is not git", func() {
+			Expect(k8sClient.Delete(ctx, adapter.internalServicesConfig)).To(Succeed())
+
+			adapter.internalServicesConfig = &v1alpha1.InternalServicesConfig{
+				Spec: v1alpha1.InternalServicesConfigSpec{
+					AllowList:              []string{"default"},
+					AllowedGitResolverURLs: []string{"other-url"},
+				},
+			}
+			adapter.internalRequest.Spec.Pipeline.PipelineRef.Resolver = "cluster"
+			result, err := adapter.EnsureRequestIsAllowed()
+			Expect(!result.CancelRequest && !result.RequeueRequest).To(BeTrue())
+			Expect(err).To(BeNil())
+		})
 	})
 
 	Context("When calling EnsureRequestINotCompleted", func() {

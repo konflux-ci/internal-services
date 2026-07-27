@@ -220,13 +220,43 @@ func (a *Adapter) EnsurePipelineRunIsDeleted() (controller.OperationResult, erro
 func (a *Adapter) EnsureRequestIsAllowed() (controller.OperationResult, error) {
 	for _, namespace := range a.internalServicesConfig.Spec.AllowList {
 		if namespace == a.internalRequest.Namespace {
-			return controller.ContinueProcessing()
+			return a.ensureGitResolverURLIsAllowed()
 		}
 	}
 
 	patch := client.MergeFrom(a.internalRequest.DeepCopy())
 	a.internalRequest.MarkRejected(
 		fmt.Sprintf("the internal request namespace (%s) is not in the allow list", a.internalRequest.Namespace),
+	)
+	return controller.RequeueOnErrorOrStop(a.client.Status().Patch(a.ctx, a.internalRequest, patch))
+}
+
+// ensureGitResolverURLIsAllowed checks whether the git resolver URL in the InternalRequest
+// matches an entry in the AllowedGitResolverURLs list. If the resolver is not "git" or the
+// list is empty, all requests are allowed.
+func (a *Adapter) ensureGitResolverURLIsAllowed() (controller.OperationResult, error) {
+	if a.internalRequest.Spec.Pipeline.PipelineRef.Resolver != "git" ||
+		len(a.internalServicesConfig.Spec.AllowedGitResolverURLs) == 0 {
+		return controller.ContinueProcessing()
+	}
+
+	var url string
+	for _, param := range a.internalRequest.Spec.Pipeline.PipelineRef.Params {
+		if param.Name == "url" {
+			url = param.Value
+			break
+		}
+	}
+
+	for _, allowedURL := range a.internalServicesConfig.Spec.AllowedGitResolverURLs {
+		if url == allowedURL {
+			return controller.ContinueProcessing()
+		}
+	}
+
+	patch := client.MergeFrom(a.internalRequest.DeepCopy())
+	a.internalRequest.MarkRejected(
+		fmt.Sprintf("the pipeline git resolver URL (%s) is not in the allowed list: %v", url, a.internalServicesConfig.Spec.AllowedGitResolverURLs),
 	)
 	return controller.RequeueOnErrorOrStop(a.client.Status().Patch(a.ctx, a.internalRequest, patch))
 }

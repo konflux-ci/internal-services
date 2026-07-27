@@ -28,6 +28,12 @@ type InternalServicesConfigSpec struct {
 	// +optional
 	AllowList []string `json:"allowList,omitempty"`
 
+	// AllowedGitResolverURLs is the list of git resolver URLs allowed for pipeline references.
+	// When non-empty and the resolver is "git", only requests with a URL matching one of these
+	// entries will be allowed. When empty, all git resolver URLs are permitted.
+	// +optional
+	AllowedGitResolverURLs []string `json:"allowedGitResolverURLs,omitempty"`
+
 	// Debug sets the operator to run in debug mode. In this mode, PipelineRuns and PVCs will not be removed
 	// +optional
 	Debug bool `json:"debug,omitempty"`
