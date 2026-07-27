@@ -217,6 +217,11 @@ func (in *InternalServicesConfigSpec) DeepCopyInto(out *InternalServicesConfigSp
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.AllowedGitResolverURLs != nil {
+		in, out := &in.AllowedGitResolverURLs, &out.AllowedGitResolverURLs
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	out.VolumeClaim = in.VolumeClaim
 }
 
