@@ -4,6 +4,13 @@ codecov:
 
 ignore:
   - "api/v1alpha1/zz_generated.deepcopy.go" # generated file
+  - ".agents/**"
+  - ".claude/**"
+  - ".cursor/**"
+  - "skills/**"
+  - "docs/**"
+  - "*.md"
+  - "*.toml"
 
 coverage:
   status:
