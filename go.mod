@@ -1,6 +1,6 @@
 module github.com/konflux-ci/internal-services
 
-go 1.26.0
+go 1.26.4
 
 require (
 	github.com/go-logr/logr v1.4.4
@@ -10,7 +10,7 @@ require (
 	github.com/onsi/gomega v1.42.1
 	github.com/operator-framework/operator-lib v0.19.0
 	github.com/prometheus/client_golang v1.23.2
-	github.com/tektoncd/pipeline v1.12.0
+	github.com/tektoncd/pipeline v1.15.0
 	go.uber.org/zap v1.28.0
 	k8s.io/api v0.36.0
 	k8s.io/apimachinery v0.36.3
@@ -61,7 +61,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
-	github.com/prometheus/common v0.69.0 // indirect
+	github.com/prometheus/common v0.70.1 // indirect
 	github.com/prometheus/otlptranslator v1.0.0 // indirect
 	github.com/prometheus/procfs v0.21.1 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
