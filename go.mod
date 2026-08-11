@@ -12,7 +12,7 @@ require (
 	github.com/prometheus/client_golang v1.23.2
 	github.com/tektoncd/pipeline v1.15.0
 	go.uber.org/zap v1.28.0
-	k8s.io/api v0.36.0
+	k8s.io/api v0.36.3
 	k8s.io/apimachinery v0.36.3
 	k8s.io/client-go v0.36.0
 	knative.dev/pkg v0.0.0-20260622140654-39ebae2ee2dc
