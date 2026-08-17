@@ -10,10 +10,11 @@ import (
 )
 
 const (
-	InternalRequestContextKey            toolkit.ContextKey = iota
-	InternalRequestPipelineContextKey    toolkit.ContextKey = iota
-	InternalRequestPipelineRunContextKey toolkit.ContextKey = iota
-	InternalServicesConfigContextKey     toolkit.ContextKey = iota
+	InternalRequestContextKey                    toolkit.ContextKey = iota
+	InternalRequestPipelineContextKey            toolkit.ContextKey = iota
+	InternalRequestPipelineRunContextKey         toolkit.ContextKey = iota
+	InternalRequestPipelineRunTaskRunsContextKey toolkit.ContextKey = iota
+	InternalServicesConfigContextKey             toolkit.ContextKey = iota
 )
 
 type mockLoader struct {
@@ -48,6 +49,14 @@ func (l *mockLoader) GetInternalRequestPipelineRun(ctx context.Context, cli clie
 		return l.loader.GetInternalRequestPipelineRun(ctx, cli, internalRequest)
 	}
 	return toolkit.GetMockedResourceAndErrorFromContext(ctx, InternalRequestPipelineRunContextKey, &v1.PipelineRun{})
+}
+
+// GetInternalRequestPipelineRunTaskRuns returns the resource and error passed as values of the context.
+func (l *mockLoader) GetInternalRequestPipelineRunTaskRuns(ctx context.Context, cli client.Client, pipelineRun *v1.PipelineRun) (*v1.TaskRunList, error) {
+	if ctx.Value(InternalRequestPipelineRunTaskRunsContextKey) == nil {
+		return l.loader.GetInternalRequestPipelineRunTaskRuns(ctx, cli, pipelineRun)
+	}
+	return toolkit.GetMockedResourceAndErrorFromContext(ctx, InternalRequestPipelineRunTaskRunsContextKey, &v1.TaskRunList{})
 }
 
 // GetInternalServicesConfig returns the resource and error passed as values of the context.

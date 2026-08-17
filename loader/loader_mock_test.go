@@ -62,6 +62,21 @@ var _ = Describe("Loader Mock", Ordered, func() {
 		})
 	})
 
+	Context("When calling GetInternalRequestPipelineRunTaskRuns", func() {
+		It("returns the resource and error from the context", func() {
+			taskRunList := &tektonv1.TaskRunList{}
+			mockContext := toolkit.GetMockedContext(ctx, []toolkit.MockData{
+				{
+					ContextKey: InternalRequestPipelineRunTaskRunsContextKey,
+					Resource:   taskRunList,
+				},
+			})
+			resource, err := loader.GetInternalRequestPipelineRunTaskRuns(mockContext, nil, &tektonv1.PipelineRun{})
+			Expect(resource).To(Equal(taskRunList))
+			Expect(err).To(BeNil())
+		})
+	})
+
 	Context("When calling GetInternalServicesConfig", func() {
 		It("returns the resource and error from the context", func() {
 			internalServicesConfig := &v1alpha1.InternalServicesConfig{}

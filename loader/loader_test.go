@@ -19,6 +19,7 @@ var _ = Describe("Loader", Ordered, func() {
 		internalRequest        *v1alpha1.InternalRequest
 		pipeline               *tektonv1.Pipeline
 		pipelineRun            *tektonv1.PipelineRun
+		taskRun                *tektonv1.TaskRun
 	)
 
 	BeforeAll(func() {
@@ -60,6 +61,24 @@ var _ = Describe("Loader", Ordered, func() {
 			returnedObject, err := loader.GetInternalRequestPipelineRun(ctx, k8sClient, modifiedRequest)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(returnedObject).To(BeNil())
+		})
+	})
+
+	Context("When calling GetInternalRequestPipelineRunTaskRuns", func() {
+		It("returns TaskRuns whose label matches the PipelineRun name", func() {
+			returnedObject, err := loader.GetInternalRequestPipelineRunTaskRuns(ctx, k8sClient, pipelineRun)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(returnedObject.Items).To(HaveLen(1))
+			Expect(returnedObject.Items[0].Name).To(Equal(taskRun.Name))
+		})
+
+		It("returns an empty list when no TaskRuns match the PipelineRun name", func() {
+			modifiedPipelineRun := pipelineRun.DeepCopy()
+			modifiedPipelineRun.Name = "non-existing-pipeline-run"
+
+			returnedObject, err := loader.GetInternalRequestPipelineRunTaskRuns(ctx, k8sClient, modifiedPipelineRun)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(returnedObject.Items).To(BeEmpty())
 		})
 	})
 
@@ -120,6 +139,17 @@ var _ = Describe("Loader", Ordered, func() {
 			},
 		}
 		Expect(k8sClient.Create(ctx, pipelineRun)).To(Succeed())
+
+		taskRun = &tektonv1.TaskRun{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{
+					"tekton.dev/pipelineRun": pipelineRun.Name,
+				},
+				Name:      "pipeline-run-task",
+				Namespace: "default",
+			},
+		}
+		Expect(k8sClient.Create(ctx, taskRun)).To(Succeed())
 	}
 
 })

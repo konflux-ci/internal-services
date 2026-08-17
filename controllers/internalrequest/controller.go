@@ -55,6 +55,7 @@ type Reconciler struct {
 // +kubebuilder:rbac:groups=tekton.dev,resources=pipelines,verbs=get;list;watch
 // +kubebuilder:rbac:groups=tekton.dev,resources=pipelineruns,verbs=get;list;watch;create;delete;patch
 // +kubebuilder:rbac:groups=tekton.dev,resources=pipelineruns/status,verbs=get
+// +kubebuilder:rbac:groups=tekton.dev,resources=taskruns,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
