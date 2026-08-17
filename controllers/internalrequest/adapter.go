@@ -303,6 +303,32 @@ func (a *Adapter) createInternalRequestPipelineRun() (*tektonv1.PipelineRun, err
 	return pipelineRun, nil
 }
 
+// failedTaskRunMessage lists the child TaskRuns of pipelineRun and returns a
+// combined message from any that have a False Succeeded condition. This gives a
+// more specific failure reason (e.g. image pull error, step exit code) than the
+// generic PipelineRun-level summary Tekton sets. Returns an empty string when no
+// failed TaskRun conditions are found or the list call fails, so the caller can
+// fall back to the PipelineRun condition message.
+func (a *Adapter) failedTaskRunMessage(pipelineRun *tektonv1.PipelineRun) string {
+	taskRuns := &tektonv1.TaskRunList{}
+	if err := a.internalClient.List(a.ctx, taskRuns,
+		client.InNamespace(pipelineRun.Namespace),
+		client.MatchingLabels{"tekton.dev/pipelineRun": pipelineRun.Name},
+	); err != nil {
+		return ""
+	}
+
+	var messages []string
+	for i := range taskRuns.Items {
+		c := taskRuns.Items[i].Status.GetCondition(apis.ConditionSucceeded)
+		if c != nil && c.IsFalse() && c.Message != "" {
+			messages = append(messages,
+				fmt.Sprintf("%s (%s): %s", taskRuns.Items[i].Name, c.Reason, c.Message))
+		}
+	}
+	return strings.Join(messages, "; ")
+}
+
 // getDefaultInternalServicesConfig creates and returns a InternalServicesConfig resource in the given namespace with default values.
 func (a *Adapter) getDefaultInternalServicesConfig(namespace string) *v1alpha1.InternalServicesConfig {
 	return &v1alpha1.InternalServicesConfig{
@@ -343,7 +369,17 @@ func (a *Adapter) registerInternalRequestPipelineRunStatus(pipelineRun *tektonv1
 			a.internalRequest.Status.Results = tekton.GetResultsFromPipelineRun(pipelineRun)
 			a.internalRequest.MarkSucceeded()
 		} else {
-			a.internalRequest.MarkFailed(condition.Message)
+			// The PipelineRun-level condition message is a generic Tekton summary
+			// (e.g. "Tasks Completed: 1 (Failed: 1, Cancelled 0), Skipped: 0").
+			// Try to surface the more actionable child TaskRun condition messages
+			// instead, so callers on the tenant cluster can see the real cause
+			// (e.g. image pull failure, step exit code) without needing access to
+			// the internal-services namespace.
+			message := a.failedTaskRunMessage(pipelineRun)
+			if message == "" {
+				message = condition.Message
+			}
+			a.internalRequest.MarkFailed(message)
 		}
 		a.logger.Info("Request execution finished", "Succeeded", a.internalRequest.HasSucceeded())
 	}
