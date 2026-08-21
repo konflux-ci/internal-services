@@ -310,11 +310,9 @@ func (a *Adapter) createInternalRequestPipelineRun() (*tektonv1.PipelineRun, err
 // failed TaskRun conditions are found or the list call fails, so the caller can
 // fall back to the PipelineRun condition message.
 func (a *Adapter) failedTaskRunMessage(pipelineRun *tektonv1.PipelineRun) string {
-	taskRuns := &tektonv1.TaskRunList{}
-	if err := a.internalClient.List(a.ctx, taskRuns,
-		client.InNamespace(pipelineRun.Namespace),
-		client.MatchingLabels{"tekton.dev/pipelineRun": pipelineRun.Name},
-	); err != nil {
+	taskRuns, err := a.loader.GetInternalRequestPipelineRunTaskRuns(a.ctx, a.internalClient, pipelineRun)
+	if err != nil {
+		a.logger.Error(err, "Failed to list child TaskRuns", "PipelineRun", pipelineRun.Name)
 		return ""
 	}
 

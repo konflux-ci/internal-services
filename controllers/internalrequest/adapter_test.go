@@ -751,7 +751,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 			Expect(k8sClient.Status().Update(ctx, taskRun)).To(Succeed())
 			DeferCleanup(func() { _ = k8sClient.Delete(ctx, taskRun) })
 
-			pipelineRun.Status.MarkFailed("Tasks Completed: 1 (Failed: 1, Cancelled 0), Skipped: 0", "")
+			pipelineRun.Status.MarkFailed("PipelineRunFailed", "Tasks Completed: 1 (Failed: 1, Cancelled 0), Skipped: 0")
 			Expect(adapter.registerInternalRequestPipelineRunStatus(pipelineRun)).To(BeNil())
 			Expect(adapter.internalRequest.HasSucceeded()).To(BeFalse())
 
@@ -765,7 +765,7 @@ var _ = Describe("PipelineRun", Ordered, func() {
 
 		It("should fall back to the PipelineRun message when no child TaskRuns are found", func() {
 			adapter.internalRequest.MarkRunning()
-			pipelineRun.Status.MarkFailed("Tasks Completed: 1 (Failed: 1, Cancelled 0), Skipped: 0", "")
+			pipelineRun.Status.MarkFailed("PipelineRunFailed", "Tasks Completed: 1 (Failed: 1, Cancelled 0), Skipped: 0")
 			Expect(adapter.registerInternalRequestPipelineRunStatus(pipelineRun)).To(BeNil())
 			Expect(adapter.internalRequest.HasSucceeded()).To(BeFalse())
 

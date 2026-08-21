@@ -14,6 +14,7 @@ type ObjectLoader interface {
 	GetInternalRequest(ctx context.Context, cli client.Client, name, namespace string) (*v1alpha1.InternalRequest, error)
 	GetInternalRequestPipeline(ctx context.Context, cli client.Client, name, namespace string) (*v1.Pipeline, error)
 	GetInternalRequestPipelineRun(ctx context.Context, cli client.Client, internalRequest *v1alpha1.InternalRequest) (*v1.PipelineRun, error)
+	GetInternalRequestPipelineRunTaskRuns(ctx context.Context, cli client.Client, pipelineRun *v1.PipelineRun) (*v1.TaskRunList, error)
 	GetInternalServicesConfig(ctx context.Context, cli client.Client, name, namespace string) (*v1alpha1.InternalServicesConfig, error)
 }
 
@@ -53,6 +54,18 @@ func (l *loader) GetInternalRequestPipelineRun(ctx context.Context, cli client.C
 	}
 
 	return nil, err
+}
+
+// GetInternalRequestPipelineRunTaskRuns returns the list of TaskRuns owned by the PipelineRun. If the
+// List operation fails a error will be returned.
+func (l *loader) GetInternalRequestPipelineRunTaskRuns(ctx context.Context, cli client.Client, pipelineRun *v1.PipelineRun) (*v1.TaskRunList, error) {
+	taskRuns := &v1.TaskRunList{}
+	err := cli.List(ctx, taskRuns,
+		client.InNamespace(pipelineRun.Namespace),
+		client.MatchingLabels{
+			"tekton.dev/pipelineRun": pipelineRun.Name,
+		})
+	return taskRuns, err
 }
 
 // GetInternalServicesConfig returns the InternalServicesConfig with the given name and namespace. If the
