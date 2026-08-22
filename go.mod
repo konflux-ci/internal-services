@@ -9,7 +9,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.32.0
 	github.com/onsi/gomega v1.42.1
 	github.com/operator-framework/operator-lib v0.19.0
-	github.com/prometheus/client_golang v1.23.2
+	github.com/prometheus/client_golang v1.24.1
 	github.com/tektoncd/pipeline v1.15.0
 	go.uber.org/zap v1.28.0
 	k8s.io/api v0.36.3
