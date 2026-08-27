@@ -19,6 +19,7 @@ package main
 import (
 	"flag"
 	"os"
+	"time"
 
 	"github.com/konflux-ci/internal-services/metadata"
 	"github.com/konflux-ci/internal-services/tekton"
@@ -69,6 +70,9 @@ func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
 	var enableLeaderElectionId string
+	var leaderElectorRetryPeriod time.Duration
+	var leaderRenewDeadline time.Duration
+	var leaseDuration time.Duration
 	var probeAddr string
 	var remoteClusterConfigFile string
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
@@ -79,6 +83,17 @@ func main() {
 	flag.StringVar(&enableLeaderElectionId, "leader-election-id",
 		"b548bb9d.redhat.com",
 		"Enable overriding leader election ID for controller manager. ")
+	// controller-runtime sets the leader-election HTTP client timeout to
+	// RenewDeadline/2. Local-cluster etcd defrag takes ~25s, so RenewDeadline
+	// must be >50s or a single stalled PUT loses the lease. LeaseDuration must
+	// stay above RenewDeadline (client-go rejects the config otherwise).
+	flag.DurationVar(&leaderRenewDeadline, "leader-renew-deadline", 60*time.Second,
+		"Leader RenewDeadline is the duration that the acting controlplane "+
+			"will retry refreshing leadership before giving up.")
+	flag.DurationVar(&leaseDuration, "lease-duration", 90*time.Second,
+		"Lease Duration is the duration that non-leader candidates will wait to force acquire leadership.")
+	flag.DurationVar(&leaderElectorRetryPeriod, "leader-elector-retry-period", 10*time.Second,
+		"RetryPeriod is the duration the LeaderElector clients should wait between tries of actions.")
 	flag.StringVar(&remoteClusterConfigFile, "remote-cluster-config-file", "",
 		"The remote client will load its initial configuration from this file. "+
 			"Omit this flag to use the default configuration values. "+
@@ -103,6 +118,9 @@ func main() {
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       enableLeaderElectionId,
+		LeaseDuration:          &leaseDuration,
+		RenewDeadline:          &leaderRenewDeadline,
+		RetryPeriod:            &leaderElectorRetryPeriod,
 		Cache: cache.Options{
 			ByObject: map[client.Object]cache.ByObject{
 				&tektonv1.PipelineRun{}: {
