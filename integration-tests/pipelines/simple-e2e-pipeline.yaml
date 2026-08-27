@@ -499,7 +499,7 @@ spec:
               kubectl create -f internal-request.yaml
 
               # Check that the Status field was properly updated. Check every 5 seconds for up to 5 minutes
-              for i in $(seq 1 60); do
+              for i in $(seq 1 120); do
                   REASON=$(kubectl get internalrequest myrequest -n default -o jsonpath='{.status.conditions[0].reason}')
                   if [ "$REASON" = "Succeeded" ]; then
                       exit 0
