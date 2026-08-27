@@ -1,0 +1,22 @@
+---
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: sample
+  namespace: default
+  labels:
+    app.kubernetes.io/version: "1.0.0"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.12.1"
+    tekton.dev/tags: release
+spec:
+  tasks:
+    - name: sample
+      taskSpec:
+        steps:
+          - name: echo
+            image: quay.io/konflux-ci/release-service-utils@sha256:9b67510f1797cf3ef847400d0c8d58f0d62d881bbef833cd04ba6f241083e7e4
+            script: |
+              #!/usr/bin/env sh
+              set -eux
+              echo hello world
