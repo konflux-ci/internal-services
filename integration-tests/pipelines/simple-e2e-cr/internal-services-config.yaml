@@ -1,0 +1,13 @@
+---
+apiVersion: appstudio.redhat.com/v1alpha1
+kind: InternalServicesConfig
+metadata:
+  name: config
+  namespace: default
+spec:
+  allowList:
+    - default
+  debug: true
+  volumeClaim:
+    name: workspace
+    size: 1Gi
