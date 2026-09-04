@@ -18,6 +18,7 @@ package internalrequest
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/konflux-ci/internal-services/loader"
 	"github.com/konflux-ci/internal-services/tekton"
@@ -31,8 +32,11 @@ import (
 	. "github.com/onsi/gomega"
 	libhandler "github.com/operator-framework/operator-lib/handler"
 	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"knative.dev/pkg/apis"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -722,6 +726,181 @@ var _ = Describe("PipelineRun", Ordered, func() {
 			adapter.internalRequest.MarkRunning()
 			Expect(adapter.registerInternalRequestPipelineRunStatus(pipelineRun)).To(BeNil())
 			Expect(adapter.internalRequest.Status.PipelineRun).To(Equal("default/pipeline-run"))
+		})
+
+		It("should use the child TaskRun condition message when the PipelineRun fails", func() {
+			adapter.internalRequest.MarkRunning()
+
+			// Create a failed child TaskRun in the same namespace as the PipelineRun.
+			taskRun := &tektonv1.TaskRun{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "pipeline-run-sign",
+					Namespace: pipelineRun.Namespace,
+					Labels: map[string]string{
+						"tekton.dev/pipelineRun": pipelineRun.Name,
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, taskRun)).To(Succeed())
+			taskRun.Status.MarkResourceOngoing(tektonv1.TaskRunReasonRunning, "")
+			taskRun.Status.SetCondition(&apis.Condition{
+				Type:    apis.ConditionSucceeded,
+				Status:  corev1.ConditionFalse,
+				Reason:  "TaskRunImagePullFailed",
+				Message: `Back-off pulling image "quay.io/konflux-ci/signing@sha256:abc123": unauthorized`,
+			})
+			Expect(k8sClient.Status().Update(ctx, taskRun)).To(Succeed())
+			DeferCleanup(func() { _ = k8sClient.Delete(ctx, taskRun) })
+
+			pipelineRun.Status.MarkFailed("PipelineRunFailed", "Tasks Completed: 1 (Failed: 1, Cancelled 0), Skipped: 0")
+			Expect(adapter.registerInternalRequestPipelineRunStatus(pipelineRun)).To(BeNil())
+			Expect(adapter.internalRequest.HasSucceeded()).To(BeFalse())
+
+			// The IR condition message should contain the TaskRun-level detail, not the generic summary.
+			condition := meta.FindStatusCondition(adapter.internalRequest.Status.Conditions, v1alpha1.SucceededConditionType.String())
+			Expect(condition).NotTo(BeNil())
+			Expect(condition.Message).To(ContainSubstring("TaskRunImagePullFailed"))
+			Expect(condition.Message).To(ContainSubstring("unauthorized"))
+			Expect(condition.Message).NotTo(ContainSubstring("Tasks Completed"))
+		})
+
+		It("should fall back to the PipelineRun message when no child TaskRuns are found", func() {
+			adapter.internalRequest.MarkRunning()
+			pipelineRun.Status.MarkFailed("PipelineRunFailed", "Tasks Completed: 1 (Failed: 1, Cancelled 0), Skipped: 0")
+			Expect(adapter.registerInternalRequestPipelineRunStatus(pipelineRun)).To(BeNil())
+			Expect(adapter.internalRequest.HasSucceeded()).To(BeFalse())
+
+			condition := meta.FindStatusCondition(adapter.internalRequest.Status.Conditions, v1alpha1.SucceededConditionType.String())
+			Expect(condition).NotTo(BeNil())
+			Expect(condition.Message).To(ContainSubstring("Tasks Completed"))
+		})
+	})
+
+	Context("When calling failedTaskRunMessage", func() {
+		var pipelineRun *tektonv1.PipelineRun
+
+		AfterEach(func() {
+			deleteResources()
+		})
+
+		BeforeEach(func() {
+			createResources()
+			pipelineRun = &tektonv1.PipelineRun{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "pipeline-run",
+					Namespace: "default",
+				},
+			}
+		})
+
+		It("should return an empty string when no TaskRuns exist for the PipelineRun", func() {
+			Expect(adapter.failedTaskRunMessage(pipelineRun)).To(BeEmpty())
+		})
+
+		It("should return an empty string when the TaskRun list call fails", func() {
+			mockContext := toolkit.GetMockedContext(ctx, []toolkit.MockData{
+				{
+					ContextKey: loader.InternalRequestPipelineRunTaskRunsContextKey,
+					Resource:   &tektonv1.TaskRunList{},
+					Err:        fmt.Errorf("list failed"),
+				},
+			})
+			mockAdapter := NewAdapter(mockContext, k8sClient, k8sClient, adapter.internalRequest, loader.NewMockLoader(), ctrl.Log)
+			Expect(mockAdapter.failedTaskRunMessage(pipelineRun)).To(BeEmpty())
+		})
+
+		It("should return an empty string when all child TaskRuns succeeded", func() {
+			taskRun := &tektonv1.TaskRun{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "pipeline-run-ok",
+					Namespace: pipelineRun.Namespace,
+					Labels:    map[string]string{"tekton.dev/pipelineRun": pipelineRun.Name},
+				},
+			}
+			Expect(k8sClient.Create(ctx, taskRun)).To(Succeed())
+			taskRun.Status.MarkResourceOngoing(tektonv1.TaskRunReasonRunning, "")
+			taskRun.Status.SetCondition(&apis.Condition{
+				Type:   apis.ConditionSucceeded,
+				Status: corev1.ConditionTrue,
+				Reason: "Succeeded",
+			})
+			Expect(k8sClient.Status().Update(ctx, taskRun)).To(Succeed())
+			DeferCleanup(func() { _ = k8sClient.Delete(ctx, taskRun) })
+
+			Expect(adapter.failedTaskRunMessage(pipelineRun)).To(BeEmpty())
+		})
+
+		It("should include the name, reason, and message from a failed child TaskRun", func() {
+			taskRun := &tektonv1.TaskRun{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "pipeline-run-sign",
+					Namespace: pipelineRun.Namespace,
+					Labels:    map[string]string{"tekton.dev/pipelineRun": pipelineRun.Name},
+				},
+			}
+			Expect(k8sClient.Create(ctx, taskRun)).To(Succeed())
+			taskRun.Status.MarkResourceOngoing(tektonv1.TaskRunReasonRunning, "")
+			taskRun.Status.SetCondition(&apis.Condition{
+				Type:    apis.ConditionSucceeded,
+				Status:  corev1.ConditionFalse,
+				Reason:  "StepFailed",
+				Message: `"step-run" exited with code 1`,
+			})
+			Expect(k8sClient.Status().Update(ctx, taskRun)).To(Succeed())
+			DeferCleanup(func() { _ = k8sClient.Delete(ctx, taskRun) })
+
+			msg := adapter.failedTaskRunMessage(pipelineRun)
+			Expect(msg).To(ContainSubstring("pipeline-run-sign"))
+			Expect(msg).To(ContainSubstring("StepFailed"))
+			Expect(msg).To(ContainSubstring(`"step-run" exited with code 1`))
+		})
+
+		It("should combine messages from multiple failed child TaskRuns", func() {
+			for _, name := range []string{"pipeline-run-sign", "pipeline-run-push"} {
+				taskRun := &tektonv1.TaskRun{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      name,
+						Namespace: pipelineRun.Namespace,
+						Labels:    map[string]string{"tekton.dev/pipelineRun": pipelineRun.Name},
+					},
+				}
+				Expect(k8sClient.Create(ctx, taskRun)).To(Succeed())
+				taskRun.Status.SetCondition(&apis.Condition{
+					Type:    apis.ConditionSucceeded,
+					Status:  corev1.ConditionFalse,
+					Reason:  "StepFailed",
+					Message: name + " failed",
+				})
+				Expect(k8sClient.Status().Update(ctx, taskRun)).To(Succeed())
+				DeferCleanup(func() { _ = k8sClient.Delete(ctx, taskRun) })
+			}
+
+			msg := adapter.failedTaskRunMessage(pipelineRun)
+			Expect(msg).To(ContainSubstring("pipeline-run-sign"))
+			Expect(msg).To(ContainSubstring("pipeline-run-push"))
+			Expect(strings.Count(msg, "; ")).To(Equal(1))
+		})
+
+		It("should truncate the message when it exceeds 1024 characters", func() {
+			taskRun := &tektonv1.TaskRun{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "pipeline-run-verbose",
+					Namespace: pipelineRun.Namespace,
+					Labels:    map[string]string{"tekton.dev/pipelineRun": pipelineRun.Name},
+				},
+			}
+			Expect(k8sClient.Create(ctx, taskRun)).To(Succeed())
+			taskRun.Status.SetCondition(&apis.Condition{
+				Type:    apis.ConditionSucceeded,
+				Status:  corev1.ConditionFalse,
+				Reason:  "StepFailed",
+				Message: strings.Repeat(`Back-off pulling image "quay.io/konflux-ci/signing@sha256:abc": unauthorized`, 60),
+			})
+			Expect(k8sClient.Status().Update(ctx, taskRun)).To(Succeed())
+			DeferCleanup(func() { _ = k8sClient.Delete(ctx, taskRun) })
+
+			msg := adapter.failedTaskRunMessage(pipelineRun)
+			Expect(msg).To(HaveSuffix("... (truncated)"))
 		})
 	})
 
