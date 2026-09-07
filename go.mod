@@ -10,7 +10,7 @@ require (
 	github.com/onsi/gomega v1.43.0
 	github.com/operator-framework/operator-lib v0.19.0
 	github.com/prometheus/client_golang v1.24.1
-	github.com/tektoncd/pipeline v1.15.1
+	github.com/tektoncd/pipeline v1.16.0
 	go.uber.org/zap v1.28.0
 	k8s.io/api v0.37.0
 	k8s.io/apimachinery v0.37.0
