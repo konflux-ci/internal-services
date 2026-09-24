@@ -529,6 +529,69 @@ var _ = Describe("PipelineRun", Ordered, func() {
 			Expect(!result.CancelRequest && !result.RequeueRequest).To(BeTrue())
 			Expect(err).To(BeNil())
 		})
+
+		It("should allow when allowedServiceAccounts is empty", func() {
+			Expect(k8sClient.Delete(ctx, adapter.internalServicesConfig)).To(Succeed())
+
+			adapter.internalServicesConfig = &v1alpha1.InternalServicesConfig{
+				Spec: v1alpha1.InternalServicesConfigSpec{
+					AllowList: []string{"default"},
+				},
+			}
+			result, err := adapter.EnsureRequestIsAllowed()
+			Expect(!result.CancelRequest && !result.RequeueRequest).To(BeTrue())
+			Expect(err).To(BeNil())
+		})
+
+		It("should allow when the ServiceAccount matches an entry in allowedServiceAccounts", func() {
+			Expect(k8sClient.Delete(ctx, adapter.internalServicesConfig)).To(Succeed())
+
+			adapter.internalServicesConfig = &v1alpha1.InternalServicesConfig{
+				Spec: v1alpha1.InternalServicesConfigSpec{
+					AllowList:              []string{"default"},
+					AllowedServiceAccounts: []string{"sample-sa", "other-sa"},
+				},
+			}
+			result, err := adapter.EnsureRequestIsAllowed()
+			Expect(!result.CancelRequest && !result.RequeueRequest).To(BeTrue())
+			Expect(err).To(BeNil())
+		})
+
+		It("should reject when the ServiceAccount does not match any entry in allowedServiceAccounts", func() {
+			Expect(k8sClient.Delete(ctx, adapter.internalServicesConfig)).To(Succeed())
+
+			adapter.internalServicesConfig = &v1alpha1.InternalServicesConfig{
+				Spec: v1alpha1.InternalServicesConfigSpec{
+					AllowList:              []string{"default"},
+					AllowedServiceAccounts: []string{"other-sa"},
+				},
+			}
+			result, err := adapter.EnsureRequestIsAllowed()
+			Expect(result.CancelRequest && !result.RequeueRequest).To(BeTrue())
+			Expect(err).To(BeNil())
+			Expect(adapter.internalRequest.Status.Conditions).To(HaveLen(1))
+			Expect(adapter.internalRequest.Status.Conditions[0].Reason).To(Equal(string(v1alpha1.RejectedReason)))
+			Expect(adapter.internalRequest.Status.Conditions[0].Message).To(ContainSubstring("not in the allowed list"))
+		})
+
+		It("should check ServiceAccount even when git resolver URL check is skipped", func() {
+			Expect(k8sClient.Delete(ctx, adapter.internalServicesConfig)).To(Succeed())
+
+			adapter.internalServicesConfig = &v1alpha1.InternalServicesConfig{
+				Spec: v1alpha1.InternalServicesConfigSpec{
+					AllowList:              []string{"default"},
+					AllowedGitResolverURLs: []string{"other-url"},
+					AllowedServiceAccounts: []string{"other-sa"},
+				},
+			}
+			adapter.internalRequest.Spec.Pipeline.PipelineRef.Resolver = "cluster"
+			result, err := adapter.EnsureRequestIsAllowed()
+			Expect(result.CancelRequest && !result.RequeueRequest).To(BeTrue())
+			Expect(err).To(BeNil())
+			Expect(adapter.internalRequest.Status.Conditions).To(HaveLen(1))
+			Expect(adapter.internalRequest.Status.Conditions[0].Reason).To(Equal(string(v1alpha1.RejectedReason)))
+			Expect(adapter.internalRequest.Status.Conditions[0].Message).To(ContainSubstring("not in the allowed list"))
+		})
 	})
 
 	Context("When calling EnsureRequestINotCompleted", func() {

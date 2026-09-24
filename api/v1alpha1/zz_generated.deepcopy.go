@@ -222,6 +222,11 @@ func (in *InternalServicesConfigSpec) DeepCopyInto(out *InternalServicesConfigSp
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.AllowedServiceAccounts != nil {
+		in, out := &in.AllowedServiceAccounts, &out.AllowedServiceAccounts
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	out.VolumeClaim = in.VolumeClaim
 }
 

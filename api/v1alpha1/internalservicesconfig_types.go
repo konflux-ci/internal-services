@@ -34,6 +34,12 @@ type InternalServicesConfigSpec struct {
 	// +optional
 	AllowedGitResolverURLs []string `json:"allowedGitResolverURLs,omitempty"`
 
+	// AllowedServiceAccounts is the list of ServiceAccount names allowed for PipelineRun execution.
+	// When non-empty, only InternalRequests specifying a ServiceAccount in this list will be allowed.
+	// When empty, any ServiceAccount is permitted.
+	// +optional
+	AllowedServiceAccounts []string `json:"allowedServiceAccounts,omitempty"`
+
 	// Debug sets the operator to run in debug mode. In this mode, PipelineRuns and PVCs will not be removed
 	// +optional
 	Debug bool `json:"debug,omitempty"`

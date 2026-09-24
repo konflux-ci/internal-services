@@ -220,7 +220,11 @@ func (a *Adapter) EnsurePipelineRunIsDeleted() (controller.OperationResult, erro
 func (a *Adapter) EnsureRequestIsAllowed() (controller.OperationResult, error) {
 	for _, namespace := range a.internalServicesConfig.Spec.AllowList {
 		if namespace == a.internalRequest.Namespace {
-			return a.ensureGitResolverURLIsAllowed()
+			result, err := a.ensureGitResolverURLIsAllowed()
+			if err != nil || result.CancelRequest || result.RequeueRequest {
+				return result, err
+			}
+			return a.ensureServiceAccountIsAllowed()
 		}
 	}
 
@@ -257,6 +261,28 @@ func (a *Adapter) ensureGitResolverURLIsAllowed() (controller.OperationResult, e
 	patch := client.MergeFrom(a.internalRequest.DeepCopy())
 	a.internalRequest.MarkRejected(
 		fmt.Sprintf("the pipeline git resolver URL (%s) is not in the allowed list: %v", url, a.internalServicesConfig.Spec.AllowedGitResolverURLs),
+	)
+	return controller.RequeueOnErrorOrStop(a.client.Status().Patch(a.ctx, a.internalRequest, patch))
+}
+
+// ensureServiceAccountIsAllowed checks whether the ServiceAccount specified in the
+// InternalRequest is in the AllowedServiceAccounts list. When the list is empty,
+// any ServiceAccount is permitted.
+func (a *Adapter) ensureServiceAccountIsAllowed() (controller.OperationResult, error) {
+	if len(a.internalServicesConfig.Spec.AllowedServiceAccounts) == 0 {
+		return controller.ContinueProcessing()
+	}
+
+	for _, allowed := range a.internalServicesConfig.Spec.AllowedServiceAccounts {
+		if a.internalRequest.Spec.ServiceAccount == allowed {
+			return controller.ContinueProcessing()
+		}
+	}
+
+	patch := client.MergeFrom(a.internalRequest.DeepCopy())
+	a.internalRequest.MarkRejected(
+		fmt.Sprintf("the ServiceAccount (%s) is not in the allowed list: %v",
+			a.internalRequest.Spec.ServiceAccount, a.internalServicesConfig.Spec.AllowedServiceAccounts),
 	)
 	return controller.RequeueOnErrorOrStop(a.client.Status().Patch(a.ctx, a.internalRequest, patch))
 }
