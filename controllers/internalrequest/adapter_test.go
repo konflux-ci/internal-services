@@ -574,6 +574,21 @@ var _ = Describe("PipelineRun", Ordered, func() {
 			Expect(adapter.internalRequest.Status.Conditions[0].Message).To(ContainSubstring("not in the allowed list"))
 		})
 
+		It("should allow an empty ServiceAccount even when allowedServiceAccounts is non-empty", func() {
+			Expect(k8sClient.Delete(ctx, adapter.internalServicesConfig)).To(Succeed())
+
+			adapter.internalServicesConfig = &v1alpha1.InternalServicesConfig{
+				Spec: v1alpha1.InternalServicesConfigSpec{
+					AllowList:              []string{"default"},
+					AllowedServiceAccounts: []string{"other-sa"},
+				},
+			}
+			adapter.internalRequest.Spec.ServiceAccount = ""
+			result, err := adapter.EnsureRequestIsAllowed()
+			Expect(!result.CancelRequest && !result.RequeueRequest).To(BeTrue())
+			Expect(err).To(BeNil())
+		})
+
 		It("should check ServiceAccount even when git resolver URL check is skipped", func() {
 			Expect(k8sClient.Delete(ctx, adapter.internalServicesConfig)).To(Succeed())
 

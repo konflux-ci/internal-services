@@ -266,10 +266,11 @@ func (a *Adapter) ensureGitResolverURLIsAllowed() (controller.OperationResult, e
 }
 
 // ensureServiceAccountIsAllowed checks whether the ServiceAccount specified in the
-// InternalRequest is in the AllowedServiceAccounts list. When the list is empty,
-// any ServiceAccount is permitted.
+// InternalRequest is in the AllowedServiceAccounts list. When the list is empty
+// or the request does not specify a ServiceAccount, any value is permitted.
 func (a *Adapter) ensureServiceAccountIsAllowed() (controller.OperationResult, error) {
-	if len(a.internalServicesConfig.Spec.AllowedServiceAccounts) == 0 {
+	if len(a.internalServicesConfig.Spec.AllowedServiceAccounts) == 0 ||
+		a.internalRequest.Spec.ServiceAccount == "" {
 		return controller.ContinueProcessing()
 	}
 
