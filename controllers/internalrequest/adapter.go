@@ -89,6 +89,10 @@ func (a *Adapter) EnsureFinalizersAreCalled() (controller.OperationResult, error
 			return controller.RequeueWithError(err)
 		}
 
+		// Account for the deletion before the finalizer is removed, so that a request deleted while it was still
+		// running is visible in the metrics instead of silently leaving the population.
+		a.internalRequest.RegisterDeletion()
+
 		patch := client.MergeFrom(a.internalRequest.DeepCopy())
 		controllerutil.RemoveFinalizer(a.internalRequest, tekton.InternalRequestFinalizer)
 		err := a.client.Patch(a.ctx, a.internalRequest, patch)

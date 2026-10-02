@@ -136,11 +136,7 @@ func (ir *InternalRequest) MarkFailed(message string) {
 	ir.Status.CompletionTime = &metav1.Time{Time: time.Now()}
 	conditions.SetConditionWithMessage(&ir.Status.Conditions, SucceededConditionType, metav1.ConditionFalse, FailedReason, message)
 
-	pipelineName := ""
-	if ir.Spec.Pipeline != nil {
-		pipelineName = ir.Spec.Pipeline.GetPipelineNameFromGitResolver()
-	}
-	go metrics.RegisterCompletedInternalRequest(pipelineName, ir.Namespace, FailedReason.String(),
+	go metrics.RegisterCompletedInternalRequest(ir.getPipelineName(), ir.Namespace, FailedReason.String(),
 		ir.Status.StartTime, ir.Status.CompletionTime, false)
 }
 
@@ -152,6 +148,7 @@ func (ir *InternalRequest) MarkRejected(message string) {
 
 	conditions.SetConditionWithMessage(&ir.Status.Conditions, SucceededConditionType, metav1.ConditionFalse, RejectedReason, message)
 
+	go metrics.RegisterRejectedInternalRequest(ir.getPipelineName(), ir.Namespace, RejectedReason.String())
 }
 
 // MarkRunning registers the start time and changes the Succeeded condition to Unknown.
@@ -162,6 +159,7 @@ func (ir *InternalRequest) MarkRunning() {
 
 	if !ir.IsRunning() {
 		ir.Status.StartTime = &metav1.Time{Time: time.Now()}
+		go metrics.RegisterNewInternalRequest(ir.CreationTimestamp, ir.Status.StartTime)
 	}
 
 	conditions.SetCondition(&ir.Status.Conditions, SucceededConditionType, metav1.ConditionFalse, RunningReason)
@@ -176,11 +174,35 @@ func (ir *InternalRequest) MarkSucceeded() {
 	ir.Status.CompletionTime = &metav1.Time{Time: time.Now()}
 	conditions.SetCondition(&ir.Status.Conditions, SucceededConditionType, metav1.ConditionTrue, SucceededReason)
 
-	pipelineName := ""
-	if ir.Spec.Pipeline != nil {
-		pipelineName = ir.Spec.Pipeline.GetPipelineNameFromGitResolver()
+	go metrics.RegisterCompletedInternalRequest(ir.getPipelineName(), ir.Namespace, SucceededReason.String(), ir.Status.StartTime, ir.Status.CompletionTime, true)
+}
+
+// RegisterDeletion accounts for an InternalRequest that is being deleted before it completed. Deletion is not a
+// condition the InternalRequest can report, because the resource is on its way out, so the outcome is only
+// recorded in the metrics. Requests that already completed are left alone: they were accounted for by MarkFailed
+// or MarkSucceeded and must not be counted twice.
+func (ir *InternalRequest) RegisterDeletion() {
+	if ir.HasCompleted() {
+		return
 	}
-	go metrics.RegisterCompletedInternalRequest(pipelineName, ir.Namespace, SucceededReason.String(), ir.Status.StartTime, ir.Status.CompletionTime, true)
+
+	deletionTime := ir.DeletionTimestamp
+	if deletionTime == nil {
+		deletionTime = &metav1.Time{Time: time.Now()}
+	}
+
+	go metrics.RegisterDeletedInternalRequest(ir.getPipelineName(), ir.Namespace, DeletedReason.String(),
+		ir.Status.StartTime, deletionTime)
+}
+
+// getPipelineName returns the name of the pipeline the InternalRequest refers to, or an empty string when the
+// request carries no pipeline.
+func (ir *InternalRequest) getPipelineName() string {
+	if ir.Spec.Pipeline == nil {
+		return ""
+	}
+
+	return ir.Spec.Pipeline.GetPipelineNameFromGitResolver()
 }
 
 // +kubebuilder:object:root=true

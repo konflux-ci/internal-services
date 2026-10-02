@@ -70,6 +70,37 @@ func RegisterNewInternalRequest(creationTime metav1.Time, startTime *metav1.Time
 	InternalRequestAttemptConcurrentTotal.Inc()
 }
 
+// RegisterDeletedInternalRequest accounts for an InternalRequest that was deleted before it reached a terminal
+// state. Such a request never goes through MarkFailed or MarkSucceeded, so without this call it disappears from
+// both the numerator and the denominator of 'internal_request_attempt_total' and the deletion is invisible to any
+// success rate built on top of it. The concurrency gauge and the duration histogram are only touched when the
+// request had already started, because that is the only case in which the gauge was incremented.
+func RegisterDeletedInternalRequest(request, namespace, reason string, startTime, deletionTime *metav1.Time) {
+	labels := prometheus.Labels{
+		"request":   request,
+		"namespace": namespace,
+		"reason":    reason,
+		"succeeded": strconv.FormatBool(false),
+	}
+	if startTime != nil {
+		InternalRequestAttemptConcurrentTotal.Dec()
+		InternalRequestAttemptDurationSeconds.With(labels).Observe(deletionTime.Sub(startTime.Time).Seconds())
+	}
+	InternalRequestAttemptTotal.With(labels).Inc()
+}
+
+// RegisterRejectedInternalRequest increments 'internal_request_attempt_total' for an InternalRequest that was
+// rejected. A rejected request is turned down before it starts running, so it never increments the concurrency
+// gauge and it has no start time: neither the gauge nor the duration histogram applies to it.
+func RegisterRejectedInternalRequest(request, namespace, reason string) {
+	InternalRequestAttemptTotal.With(prometheus.Labels{
+		"request":   request,
+		"namespace": namespace,
+		"reason":    reason,
+		"succeeded": strconv.FormatBool(false),
+	}).Inc()
+}
+
 func init() {
 	metrics.Registry.MustRegister(
 		InternalRequestAttemptConcurrentTotal,

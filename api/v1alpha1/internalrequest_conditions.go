@@ -8,6 +8,9 @@ const (
 )
 
 const (
+	// DeletedReason is the reason reported for an InternalRequest that was deleted before it completed
+	DeletedReason conditions.ConditionReason = "Deleted"
+
 	// FailedReason is the reason set when the PipelineRun failed
 	FailedReason conditions.ConditionReason = "Failed"
 
