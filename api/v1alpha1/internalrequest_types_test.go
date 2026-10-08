@@ -1,15 +1,27 @@
 package v1alpha1
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"k8s.io/apimachinery/pkg/api/meta"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/konflux-ci/internal-services/metrics"
+	tektonutils "github.com/konflux-ci/internal-services/tekton/utils"
 	"github.com/konflux-ci/operator-toolkit/conditions"
 )
+
+// deletionAttempts reads the 'internal_request_attempt_total' counter for a deleted InternalRequest in the
+// given namespace. RegisterDeletion only emits a metric, so the counter is the sole observable effect.
+func deletionAttempts(request, namespace string) float64 {
+	return testutil.ToFloat64(metrics.InternalRequestAttemptTotal.WithLabelValues(
+		request, namespace, DeletedReason.String(), "false"))
+}
 
 var _ = Describe("Internal Request type", func() {
 
@@ -291,6 +303,63 @@ var _ = Describe("Internal Request type", func() {
 				"Reason": Equal(SucceededReason.String()),
 				"Status": Equal(metav1.ConditionTrue),
 			}))
+		})
+	})
+
+	When("RegisterDeletion method is called", func() {
+		var internalRequest *InternalRequest
+
+		BeforeEach(func() {
+			internalRequest = &InternalRequest{}
+		})
+
+		It("should not account for a request that already completed", func() {
+			internalRequest.Namespace = "deletion-completed"
+			internalRequest.MarkRunning()
+			internalRequest.MarkSucceeded()
+
+			before := deletionAttempts("", internalRequest.Namespace)
+			internalRequest.RegisterDeletion()
+			Consistently(func() float64 {
+				return deletionAttempts("", internalRequest.Namespace)
+			}).Should(Equal(before))
+		})
+
+		It("should account for a request deleted while it was running", func() {
+			internalRequest.Namespace = "deletion-running"
+			internalRequest.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+			internalRequest.MarkRunning()
+
+			before := deletionAttempts("", internalRequest.Namespace)
+			internalRequest.RegisterDeletion()
+			Eventually(func() float64 {
+				return deletionAttempts("", internalRequest.Namespace)
+			}).Should(Equal(before + 1))
+		})
+
+		It("should account for a request deleted before it started, with no deletion timestamp set", func() {
+			internalRequest.Namespace = "deletion-not-started"
+			Expect(internalRequest.DeletionTimestamp).To(BeNil())
+
+			before := deletionAttempts("", internalRequest.Namespace)
+			internalRequest.RegisterDeletion()
+			Eventually(func() float64 {
+				return deletionAttempts("", internalRequest.Namespace)
+			}).Should(Equal(before + 1))
+		})
+
+		It("should label the metric with the pipeline name when the request carries a pipeline", func() {
+			internalRequest.Namespace = "deletion-with-pipeline"
+			internalRequest.Spec.Pipeline = &tektonutils.ParameterizedPipeline{}
+			internalRequest.Spec.Pipeline.Params = []tektonutils.Param{
+				{Name: "pathInRepo", Value: "pipelines/internal/my-pipeline/my-pipeline.yaml"},
+			}
+
+			before := deletionAttempts("my-pipeline", internalRequest.Namespace)
+			internalRequest.RegisterDeletion()
+			Eventually(func() float64 {
+				return deletionAttempts("my-pipeline", internalRequest.Namespace)
+			}).Should(Equal(before + 1))
 		})
 	})
 
