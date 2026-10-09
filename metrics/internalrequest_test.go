@@ -55,6 +55,9 @@ var _ = Describe("Metrics InternalRequest", Ordered, func() {
 		validInternalRequestReason   = "valid_internalrequest_reason"
 		invalidInternalRequestReason = "invalid_internalrequest_reason"
 		strategy                     = "nostrategy"
+		signingRequest               = "container-signing"
+		deletedReason                = "Deleted"
+		rejectedReason               = "Rejected"
 	)
 
 	Context("When RegisterCompletedInternalRequest is called", func() {
@@ -115,6 +118,44 @@ var _ = Describe("Metrics InternalRequest", Ordered, func() {
 			data := []int{1, 2, 3, 4}
 			readerData := createHistogramReader(attemptDurationSecondsHeader, timeBuckets, data, labels, elapsedSeconds, len(inputSeconds))
 			Expect(testutil.CollectAndCompare(InternalRequestAttemptDurationSeconds, strings.NewReader(readerData))).To(Succeed())
+		})
+	})
+
+	Context("When RegisterRejectedInternalRequest is called", func() {
+		It("increments 'InternalRequestAttemptTotal' and leaves 'InternalRequestAttemptConcurrentTotal' alone", func() {
+			concurrentBefore := testutil.ToFloat64(InternalRequestAttemptConcurrentTotal)
+
+			RegisterRejectedInternalRequest(signingRequest, defaultNamespace, rejectedReason)
+
+			Expect(testutil.ToFloat64(InternalRequestAttemptTotal.WithLabelValues(
+				signingRequest, defaultNamespace, rejectedReason, "false"))).To(Equal(1.0))
+			Expect(testutil.ToFloat64(InternalRequestAttemptConcurrentTotal)).To(Equal(concurrentBefore))
+		})
+	})
+
+	Context("When RegisterDeletedInternalRequest is called", func() {
+		It("counts a request deleted before it started without decrementing 'InternalRequestAttemptConcurrentTotal'", func() {
+			concurrentBefore := testutil.ToFloat64(InternalRequestAttemptConcurrentTotal)
+			deletionTime := metav1.NewTime(time.Now())
+
+			RegisterDeletedInternalRequest(signingRequest, defaultNamespace, deletedReason, nil, &deletionTime)
+
+			Expect(testutil.ToFloat64(InternalRequestAttemptTotal.WithLabelValues(
+				signingRequest, defaultNamespace, deletedReason, "false"))).To(Equal(1.0))
+			Expect(testutil.ToFloat64(InternalRequestAttemptConcurrentTotal)).To(Equal(concurrentBefore))
+		})
+
+		It("decrements 'InternalRequestAttemptConcurrentTotal' for a request deleted while it was running", func() {
+			startTime := metav1.NewTime(time.Now())
+			deletionTime := metav1.NewTime(startTime.Add(90 * time.Second))
+			RegisterNewInternalRequest(startTime, &startTime)
+			concurrentBefore := testutil.ToFloat64(InternalRequestAttemptConcurrentTotal)
+
+			RegisterDeletedInternalRequest(signingRequest, defaultNamespace, deletedReason, &startTime, &deletionTime)
+
+			Expect(testutil.ToFloat64(InternalRequestAttemptTotal.WithLabelValues(
+				signingRequest, defaultNamespace, deletedReason, "false"))).To(Equal(2.0))
+			Expect(testutil.ToFloat64(InternalRequestAttemptConcurrentTotal)).To(Equal(concurrentBefore - 1))
 		})
 	})
 
