@@ -6,6 +6,10 @@ ARG TARGETARCH
 
 USER 1001
 
+# Allow Go to download a newer toolchain when go.mod requires it (e.g. Go 1.27).
+# The base image ships GOTOOLCHAIN=local; auto lets it fetch the version go.mod needs.
+ENV GOTOOLCHAIN=auto
+
 # Copy the Go Modules manifests
 COPY --chown=1001:0 go.mod go.mod
 COPY --chown=1001:0 go.sum go.sum
